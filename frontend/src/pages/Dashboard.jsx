@@ -76,6 +76,13 @@ export default function Dashboard() {
     }
   };
 
+  const handleNovoProcessamento = () => {
+    setFile(null);
+    setCompetencia('');
+    setResultado(null);
+    setErro(null);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
       {/* Header Info */}
@@ -85,9 +92,9 @@ export default function Dashboard() {
         <div className="relative z-10 grid gap-6 md:grid-cols-2">
           
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 tracking-tight">Novo Faturamento em Lote</h2>
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 tracking-tight">Novo Envio de RPS em Lote</h2>
             <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm">
-              Faça upload do relatório bruto do ERP. A inteligência cruza os CNPJs com a BrasilAPI e com a sua base para montar o XML exigido pela Prefeitura de Caieiras automaticamente.
+              Faça upload do relatório do ERP para gerar o XML exigido pela Prefeitura de Caieiras.
             </p>
           </div>
 
@@ -99,7 +106,7 @@ export default function Dashboard() {
               onChange={(e) => setCompetencia(e.target.value)}
               className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-600 rounded-md px-4 py-2.5 text-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all duration-300 [color-scheme:light] dark:[color-scheme:dark]"
             />
-            <p className="text-xs text-slate-500 mt-2">Data exigida no Cabeçalho (Cabecalho &gt; DataCompetencia) do RPS</p>
+            <p className="text-xs text-slate-500 mt-2">Data exigida no Cabeçalho (SDTRPS &gt; Ano/Mes) do RPS</p>
           </div>
         </div>
       </div>
@@ -146,28 +153,40 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Botão Global de Ação */}
-      <button
-        onClick={handleProcessar}
-        disabled={!file || !competencia || isProcessing}
-        className={`w-full py-4 px-6 rounded-md font-semibold text-lg flex items-center justify-center transition-all duration-300
-          ${(!file || !competencia) 
-            ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-700' 
-            : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md dark:shadow-emerald-900/50 hover:shadow-lg dark:hover:shadow-emerald-900/80 hover:-translate-y-0.5'
-          }
-        `}
-      >
-        {isProcessing ? (
-          <>
-            <Loader2 className="animate-spin h-5 w-5 mr-3" />
-            Processando Lote de RPS...
-          </>
-        ) : (
-          <>
-            Gerar Lote de Faturamento XML
-          </>
+      {/* Botões de Ação */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <button
+          onClick={handleProcessar}
+          disabled={!file || !competencia || isProcessing}
+          className={`flex-1 py-4 px-6 rounded-md font-semibold text-lg flex items-center justify-center transition-all duration-300
+            ${(!file || !competencia) 
+              ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-700' 
+              : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md dark:shadow-emerald-900/50 hover:shadow-lg dark:hover:shadow-emerald-900/80 hover:-translate-y-0.5'
+            }
+          `}
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="animate-spin h-5 w-5 mr-3" />
+              Processando Arquivo...
+            </>
+          ) : (
+            <>
+              Gerar Arquivo XML
+            </>
+          )}
+        </button>
+
+        {file && (
+          <button
+            onClick={handleNovoProcessamento}
+            disabled={isProcessing}
+            className="py-4 px-8 rounded-md font-semibold text-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-300 shadow-sm"
+          >
+            Novo Processamento
+          </button>
         )}
-      </button>
+      </div>
 
       {/* Cards de Sucesso / Resultado Dinâmicos */}
       {resultado && (
@@ -178,7 +197,7 @@ export default function Dashboard() {
             </div>
             <div>
               <h3 className="text-xl font-bold text-emerald-700 dark:text-emerald-400">Sucesso Absoluto!</h3>
-              <p className="text-emerald-600/80 dark:text-slate-300 text-sm">Estrutura ABRASF Montada Corretamente</p>
+              <p className="text-emerald-600/80 dark:text-slate-300 text-sm">Estrutura de RPS Montada Corretamente</p>
             </div>
           </div>
           
