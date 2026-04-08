@@ -42,8 +42,10 @@ export default function Dashboard() {
     formData.append('competencia', competencia);
 
     try {
-      // Endpoint que mapeia pro futuro Vercel proxy ou back no HF
-      const response = await fetch('http://localhost:8000/api/processar', {
+      // Usa a variável de ambiente VITE_API_URL na Vercel, ou localhost rodando local
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      
+      const response = await fetch(`${apiUrl}/api/processar`, {
         method: 'POST',
         body: formData,
       });
@@ -97,7 +99,7 @@ export default function Dashboard() {
               onChange={(e) => setCompetencia(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
             />
-            <p className="text-xs text-slate-500 mt-2">Data exigida no Cabeçalho (Cabecalho > DataCompetencia) do RPS</p>
+            <p className="text-xs text-slate-500 mt-2">Data exigida no Cabeçalho (Cabecalho &gt; DataCompetencia) do RPS</p>
           </div>
         </div>
       </div>
