@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-sastre-teal: #0f766e;
+  --color-sastre-dark: #134e4a;
+  --color-sastre-gold: #f59e0b;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

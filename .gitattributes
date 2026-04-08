@@ -1,0 +1,4 @@
+*.xlsm filter=lfs diff=lfs merge=lfs -text
+*.xlsm !text !filter !merge !diff
+*.db !text !filter !merge !diff
+*.jpg !text !filter !merge !diff
