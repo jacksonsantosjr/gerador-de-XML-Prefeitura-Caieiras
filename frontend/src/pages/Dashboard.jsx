@@ -212,14 +212,26 @@ export default function Dashboard() {
              </div>
           </div>
 
-          <a 
-            href={resultado.downloadUrl}
-            download={resultado.filename}
-            className="w-full sm:w-auto inline-flex items-center justify-center bg-emerald-600 dark:bg-white text-white dark:text-emerald-900 font-bold px-8 py-3 rounded-md hover:bg-emerald-700 dark:hover:bg-emerald-50 transition-colors shadow-md dark:shadow-xl"
-          >
-            <Download className="h-5 w-5 mr-2" />
-            BAIXAR ARQUIVO FINAL XML
-          </a>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <a 
+              href={resultado.downloadUrl}
+              download={resultado.filename}
+              className="flex-1 inline-flex items-center justify-center bg-emerald-600 dark:bg-white text-white dark:text-emerald-900 font-bold px-8 py-3 rounded-md hover:bg-emerald-700 dark:hover:bg-emerald-50 transition-colors shadow-md dark:shadow-xl"
+            >
+              <Download className="h-5 w-5 mr-2" />
+              BAIXAR ARQUIVO FINAL XML
+            </a>
+
+            <a 
+              href="https://nfe.etransparencia.com.br/sp.caieiras/nfe/principal.aspx"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 inline-flex items-center justify-center bg-slate-800 dark:bg-slate-700 text-white font-bold px-8 py-3 rounded-md hover:bg-slate-900 dark:hover:bg-slate-600 transition-colors shadow-md border border-slate-700"
+            >
+              <ExternalLink className="h-5 w-5 mr-2" />
+              VALIDAR ARQUIVO
+            </a>
+          </div>
         </div>
       )}
     </div>
