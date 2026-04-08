@@ -21,6 +21,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Total-Notas", "X-Novos-Clientes"],
 )
 
 app.include_router(upload_router, prefix="/api", tags=["Lote XML Upload"])
