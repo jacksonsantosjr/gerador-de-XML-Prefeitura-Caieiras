@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-sastre-teal: #0f766e;
   --color-sastre-dark: #134e4a;

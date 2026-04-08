@@ -43,7 +43,7 @@ export default function Dashboard() {
 
     try {
       // Usa a variável de ambiente VITE_API_URL na Vercel, ou localhost rodando local
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       
       const response = await fetch(`${apiUrl}/api/processar`, {
         method: 'POST',

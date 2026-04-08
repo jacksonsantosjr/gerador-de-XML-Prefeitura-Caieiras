@@ -24,7 +24,7 @@ export default function Header({ toggleTheme, isDarkMode }) {
             </button>
             <div className="pl-4 border-l border-slate-200 dark:border-slate-700 ml-2">
                <button onClick={toggleTheme} className="p-2 rounded-md text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                 {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                 {isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
                </button>
             </div>
           </nav>

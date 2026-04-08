@@ -25,8 +25,8 @@ async def process_file(
     4. Gera o XML Lote.
     """
     
-    # 1. Validação de formato
-    if not file.filename.endswith(('.xlsx', '.xls', '.csv')):
+    # 1. Validação de formato (case-insensitive)
+    if not file.filename.lower().endswith(('.xlsx', '.xls', '.csv')):
         raise HTTPException(status_code=400, detail="Formato não suportado. Envie CSV ou Excel.")
 
     contents = await file.read()
