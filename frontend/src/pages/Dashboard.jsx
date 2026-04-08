@@ -97,7 +97,7 @@ export default function Dashboard() {
               type="month"
               value={competencia}
               onChange={(e) => setCompetencia(e.target.value)}
-              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-600 rounded-md px-4 py-2.5 text-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all duration-300"
+              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-600 rounded-md px-4 py-2.5 text-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all duration-300 [color-scheme:light] dark:[color-scheme:dark]"
             />
             <p className="text-xs text-slate-500 mt-2">Data exigida no Cabeçalho (Cabecalho &gt; DataCompetencia) do RPS</p>
           </div>
