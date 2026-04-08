@@ -9,10 +9,17 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 1
           lfs: true
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE_URL: ${{ secrets.HF_SPACE_URL }}
-        run: git push --force https://jacksonsantosjr:$HF_TOKEN@$HF_SPACE_URL main
+        run: |
+          rm -rf .git
+          git init
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git checkout -b main
+          git add .
+          git commit -m "Automated deployment from GitHub"
+          git push --force https://jacksonsantosjr:$HF_TOKEN@$HF_SPACE_URL main
