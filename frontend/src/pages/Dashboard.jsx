@@ -79,25 +79,25 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
       {/* Header Info */}
-      <div className="bg-slate-800 rounded-2xl p-6 md:p-8 border border-slate-700 shadow-xl overflow-hidden relative">
-        <div className="absolute top-0 right-0 p-32 bg-emerald-500 opacity-[0.03] rounded-full blur-3xl translate-x-10 -translate-y-10"></div>
+      <div className="bg-white dark:bg-slate-800 rounded-md p-6 md:p-8 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-xl overflow-hidden relative transition-colors duration-300">
+        <div className="absolute top-0 right-0 p-32 bg-emerald-500 opacity-[0.03] dark:opacity-[0.05] rounded-full blur-3xl translate-x-10 -translate-y-10 pointer-events-none"></div>
         
         <div className="relative z-10 grid gap-6 md:grid-cols-2">
           
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-white mb-1 tracking-tight">Novo Faturamento em Lote</h2>
-            <p className="text-slate-400 text-sm max-w-sm">
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 tracking-tight">Novo Faturamento em Lote</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm">
               Faça upload do relatório bruto do ERP. A inteligência cruza os CNPJs com a BrasilAPI e com a sua base para montar o XML exigido pela Prefeitura de Caieiras automaticamente.
             </p>
           </div>
 
-          <div className="bg-slate-900 bg-opacity-50 p-5 rounded-xl border border-slate-800 backdrop-blur-sm self-center">
-            <label className="block text-sm font-medium text-slate-300 mb-2">Competência (Mês/Ano)</label>
+          <div className="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-md border border-slate-200 dark:border-slate-800 backdrop-blur-sm self-center transition-colors duration-300">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Competência (Mês/Ano)</label>
             <input 
               type="month"
               value={competencia}
               onChange={(e) => setCompetencia(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md px-4 py-2.5 text-slate-800 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all duration-300"
             />
             <p className="text-xs text-slate-500 mt-2">Data exigida no Cabeçalho (Cabecalho &gt; DataCompetencia) do RPS</p>
           </div>
@@ -107,31 +107,31 @@ export default function Dashboard() {
       {/* Área de Drag & Drop */}
       <div 
         {...getRootProps()} 
-        className={`relative border-2 border-dashed rounded-2xl p-10 transition-all cursor-pointer flex flex-col items-center justify-center text-center
-          ${isDragActive ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-700 hover:border-slate-500 bg-slate-800/50 hover:bg-slate-800'}
-          ${file ? 'border-emerald-500/50 bg-emerald-500/5' : ''}
+        className={`relative border-2 border-dashed rounded-md p-10 transition-all cursor-pointer flex flex-col items-center justify-center text-center duration-300
+          ${isDragActive ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'border-slate-300 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-slate-500 bg-white dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800'}
+          ${file ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-500/50 dark:bg-emerald-500/5' : ''}
         `}
       >
         <input {...getInputProps()} />
         
-        <div className="h-16 w-16 bg-slate-800 rounded-full flex items-center justify-center mb-4 shadow-inner ring-1 ring-white/10 group-hover:ring-emerald-500/50 transition-all">
+        <div className="h-16 w-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 shadow-sm dark:shadow-inner ring-1 ring-slate-200 dark:ring-white/10 group-hover:ring-emerald-500/50 transition-all">
           {file ? (
-            <FileType className="h-8 w-8 text-emerald-400" />
+            <FileType className="h-8 w-8 text-emerald-500 dark:text-emerald-400" />
           ) : (
-            <UploadCloud className={`h-8 w-8 ${isDragActive ? 'text-emerald-400 animate-bounce' : 'text-slate-400'}`} />
+            <UploadCloud className={`h-8 w-8 ${isDragActive ? 'text-emerald-500 dark:text-emerald-400 animate-bounce' : 'text-slate-400'}`} />
           )}
         </div>
         
         {file ? (
           <div className="space-y-1">
-            <p className="text-sm font-semibold text-emerald-400">Arquivo Selecionado com Sucesso</p>
-            <p className="text-lg font-medium text-white">{file.name}</p>
-            <p className="text-xs text-slate-400">{(file.size / 1024).toFixed(2)} KB • Clique novamente para trocar</p>
+            <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Arquivo Selecionado com Sucesso</p>
+            <p className="text-lg font-medium text-slate-800 dark:text-white">{file.name}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{(file.size / 1024).toFixed(2)} KB • Clique novamente para trocar</p>
           </div>
         ) : (
           <div className="space-y-1">
-            <p className="text-base font-medium text-slate-200">Arraste a Planilha do ERP para cá</p>
-            <p className="text-sm text-slate-400 max-w-sm mx-auto">
+            <p className="text-base font-medium text-slate-700 dark:text-slate-200">Arraste a Planilha do ERP para cá</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
               Ou clique para selecionar. Formatos suportados: Excel (.xlsx, .xls) ou .CSV
             </p>
           </div>
@@ -140,7 +140,7 @@ export default function Dashboard() {
 
       {/* Erros da API / Validação */}
       {erro && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start space-x-3 text-red-400">
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-md p-4 flex items-start space-x-3 text-red-600 dark:text-red-400 duration-300">
           <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
           <p className="text-sm">{erro}</p>
         </div>
@@ -150,17 +150,17 @@ export default function Dashboard() {
       <button
         onClick={handleProcessar}
         disabled={!file || !competencia || isProcessing}
-        className={`w-full py-4 px-6 rounded-xl font-semibold text-lg flex items-center justify-center transition-all duration-300
+        className={`w-full py-4 px-6 rounded-md font-semibold text-lg flex items-center justify-center transition-all duration-300
           ${(!file || !competencia) 
-            ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' 
-            : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/50 hover:shadow-emerald-900/80 hover:-translate-y-0.5'
+            ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-700' 
+            : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md dark:shadow-emerald-900/50 hover:shadow-lg dark:hover:shadow-emerald-900/80 hover:-translate-y-0.5'
           }
         `}
       >
         {isProcessing ? (
           <>
             <Loader2 className="animate-spin h-5 w-5 mr-3" />
-            Processando Cruzamento na BrasilAPI...
+            Processando Lote de RPS...
           </>
         ) : (
           <>
@@ -171,32 +171,32 @@ export default function Dashboard() {
 
       {/* Cards de Sucesso / Resultado Dinâmicos */}
       {resultado && (
-        <div className="bg-emerald-900/20 border border-emerald-500/30 rounded-2xl p-6 sm:p-8 mt-8 animate-in zoom-in-95 duration-500">
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30 rounded-md p-6 sm:p-8 mt-8 animate-in zoom-in-95 duration-500">
           <div className="flex items-center space-x-4 mb-6">
-            <div className="bg-emerald-500/20 p-2 rounded-full">
-              <CheckCircle className="h-8 w-8 text-emerald-400" />
+            <div className="bg-emerald-100 dark:bg-emerald-500/20 p-2 rounded-full">
+              <CheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-emerald-400">Sucesso Absoluto!</h3>
-              <p className="text-slate-300 text-sm">Estrutura ABRASF Montada Corretamente</p>
+              <h3 className="text-xl font-bold text-emerald-700 dark:text-emerald-400">Sucesso Absoluto!</h3>
+              <p className="text-emerald-600/80 dark:text-slate-300 text-sm">Estrutura ABRASF Montada Corretamente</p>
             </div>
           </div>
           
           <div className="grid grid-cols-2 gap-4 mb-6">
-             <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700">
-                <span className="text-slate-400 text-xs uppercase tracking-wider font-semibold">Notas Fiscais Processadas</span>
-                <p className="text-3xl font-bold text-white mt-1">{resultado.totalNotas}</p>
+             <div className="bg-white dark:bg-slate-800/80 rounded-md p-4 border border-emerald-100 dark:border-slate-700 shadow-sm transition-colors duration-300">
+                <span className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">Notas Fiscais Processadas</span>
+                <p className="text-3xl font-bold text-slate-800 dark:text-white mt-1">{resultado.totalNotas}</p>
              </div>
-             <div className="bg-slate-800/80 rounded-xl p-4 border border-slate-700">
-                <span className="text-slate-400 text-xs uppercase tracking-wider font-semibold">Novos CNPJs Salvos pelo Banco</span>
-                <p className="text-3xl font-bold text-amber-400 mt-1">+{resultado.novosClientes}</p>
+             <div className="bg-white dark:bg-slate-800/80 rounded-md p-4 border border-emerald-100 dark:border-slate-700 shadow-sm transition-colors duration-300">
+                <span className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">Novos CNPJs Validados</span>
+                <p className="text-3xl font-bold text-emerald-600 dark:text-amber-400 mt-1">+{resultado.novosClientes}</p>
              </div>
           </div>
 
           <a 
             href={resultado.downloadUrl}
             download={resultado.filename}
-            className="w-full sm:w-auto inline-flex items-center justify-center bg-white text-emerald-900 font-bold px-8 py-3 rounded-xl hover:bg-emerald-50 transition-colors shadow-xl"
+            className="w-full sm:w-auto inline-flex items-center justify-center bg-emerald-600 dark:bg-white text-white dark:text-emerald-900 font-bold px-8 py-3 rounded-md hover:bg-emerald-700 dark:hover:bg-emerald-50 transition-colors shadow-md dark:shadow-xl"
           >
             <Download className="h-5 w-5 mr-2" />
             BAIXAR ARQUIVO FINAL XML
