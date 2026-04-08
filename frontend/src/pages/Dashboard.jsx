@@ -79,7 +79,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
       {/* Header Info */}
-      <div className="bg-white dark:bg-slate-800 rounded-md p-6 md:p-8 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-xl overflow-hidden relative transition-colors duration-300">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-6 md:p-8 shadow-sm dark:shadow-2xl overflow-hidden relative transition-colors duration-300">
         <div className="absolute top-0 right-0 p-32 bg-emerald-500 opacity-[0.03] dark:opacity-[0.05] rounded-full blur-3xl translate-x-10 -translate-y-10 pointer-events-none"></div>
         
         <div className="relative z-10 grid gap-6 md:grid-cols-2">
@@ -97,7 +97,7 @@ export default function Dashboard() {
               type="month"
               value={competencia}
               onChange={(e) => setCompetencia(e.target.value)}
-              className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md px-4 py-2.5 text-slate-800 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all duration-300"
+              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-600 rounded-md px-4 py-2.5 text-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all duration-300"
             />
             <p className="text-xs text-slate-500 mt-2">Data exigida no Cabeçalho (Cabecalho &gt; DataCompetencia) do RPS</p>
           </div>
@@ -108,7 +108,7 @@ export default function Dashboard() {
       <div 
         {...getRootProps()} 
         className={`relative border-2 border-dashed rounded-md p-10 transition-all cursor-pointer flex flex-col items-center justify-center text-center duration-300
-          ${isDragActive ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'border-slate-300 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-slate-500 bg-white dark:bg-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800'}
+          ${isDragActive ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'border-slate-200 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-slate-600 bg-white dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-900'}
           ${file ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-500/50 dark:bg-emerald-500/5' : ''}
         `}
       >

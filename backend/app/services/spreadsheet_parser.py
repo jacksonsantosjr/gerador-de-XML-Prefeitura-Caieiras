@@ -30,23 +30,31 @@ class SpreadsheetParser:
             # Identificadores problemáticos que as vezes vem nas planilhas e dão erro de codificação
             colunas_reais = list(df.columns)
             
-            # Buscando de forma flexível as colunas alvo
-            # Porque no ERP às vezes vem "Data Emisso" ou "N do Movimento" (erro de acento)
+            # Buscando de forma flexível as colunas alvo de forma única
             colunas_mapeadas = {}
+            alvos_encontrados = set()
+            
             for col in colunas_reais:
                 str_col = str(col).strip().upper()
+                target = None
+                
                 if "N" in str_col and "MOVIMENTO" in str_col:
-                    colunas_mapeadas[col] = "NumRps"
+                    target = "NumRps"
                 elif "DATA" in str_col and "EMISS" in str_col:
-                    colunas_mapeadas[col] = "DtEmi"
-                elif "VALOR DO DOCUMENTO" in str_col or "VALOR" in str_col and "DOCUMENTO" in str_col:
-                    colunas_mapeadas[col] = "VlNFS"
+                    target = "DtEmi"
+                elif "VALOR DO DOCUMENTO" in str_col or ("VALOR" in str_col and "DOCUMENTO" in str_col):
+                    target = "VlNFS"
                 elif "CPF" in str_col and "CNPJ" in str_col:
-                    colunas_mapeadas[col] = "CpfCnpTom"
+                    target = "CpfCnpTom"
                 elif "RAZ" in str_col and "SOCIAL" in str_col:
-                    colunas_mapeadas[col] = "RazSocTom"
+                    target = "RazSocTom"
+                
+                # Só mapeia se o alvo ainda não foi preenchido (evita duplicatas que geram DataFrames)
+                if target and target not in alvos_encontrados:
+                    colunas_mapeadas[col] = target
+                    alvos_encontrados.add(target)
             
-            # Renomeia as lidas
+            # Renomeia as colunas identificadas
             df.rename(columns=colunas_mapeadas, inplace=True)
             
             # Filtra apenas o que importa (descarta lixo)
@@ -55,7 +63,14 @@ class SpreadsheetParser:
                 if c not in df.columns:
                     raise ValueError(f"Coluna alvo obrigatória não encontrada/identificada: {c}")
                     
-            df_cleaned = df[colunas_finais].copy()
+            # Garante que pegamos apenas uma Series mesmo se houver duplicatas remanescentes no nome
+            df_cleaned = pd.DataFrame()
+            for col in colunas_finais:
+                # Se for DataFrame (múltiplas colunas com o mesmo nome), pega a primeira
+                if isinstance(df[col], pd.DataFrame):
+                    df_cleaned[col] = df[col].iloc[:, 0]
+                else:
+                    df_cleaned[col] = df[col]
             
             # Retira linhas onde NumRps é vazio (provável totalizador ou lixo)
             df_cleaned.dropna(subset=["NumRps", "CpfCnpTom"], inplace=True)

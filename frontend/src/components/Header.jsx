@@ -10,7 +10,7 @@ export default function Header({ toggleTheme, isDarkMode }) {
             <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-md">
               <FileCode2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <h1 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
+            <h1 className="text-xl font-bold text-slate-700 dark:text-white tracking-tight">
               Conversor RPS <span className="text-emerald-600 dark:text-emerald-400">&gt; XML</span>
             </h1>
           </div>
