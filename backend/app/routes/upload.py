@@ -58,15 +58,20 @@ async def process_file(
     
     # 6. Gerar XML LXML
     try:
-        xml_bytes = XmlGeneratorService.gerar_lote_xml(enriched_rows, data_competencia=competencia)
+        xml_bytes, warnings = XmlGeneratorService.gerar_lote_xml(enriched_rows, data_competencia=competencia)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro gerando estrutura XML: {str(e)}")
 
-    # 7. Disparar resposta em anexo para Download Automático
-    headers = {
-        'Content-Disposition': f'attachment; filename="RPS_CAIEIRAS_{competencia}.xml"',
-        'X-Total-Notas': str(stats["total_notas"]),
-        'X-Novos-Clientes': str(stats["tomadores_novos_brasilapi"])
+    import base64
+    xml_b64 = base64.b64encode(xml_bytes).decode('utf-8')
+
+    return {
+        "status": "success",
+        "stats": {
+            "total_notas": stats["total_notas"],
+            "novos_clientes": stats["tomadores_novos_brasilapi"]
+        },
+        "warnings": warnings,
+        "xml_base64": xml_b64,
+        "filename": f"RPS_CAIEIRAS_{competencia}.xml"
     }
-    
-    return Response(content=xml_bytes, media_type="application/xml", headers=headers)

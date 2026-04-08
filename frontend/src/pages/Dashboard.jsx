@@ -1,13 +1,27 @@
-import React, { useState, useCallback } from 'react';
-import { UploadCloud, FileType, CheckCircle, AlertCircle, Loader2, Download } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { UploadCloud, FileType, CheckCircle, AlertCircle, Loader2, Download, ExternalLink, Search, X, AlertTriangle, Database, Info } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
-export default function Dashboard() {
+export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
   const [file, setFile] = useState(null);
   const [competencia, setCompetencia] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [erro, setErro] = useState(null);
+  
+  // Modais
+  const [showWarningsModal, setShowWarningsModal] = useState(false);
+  const [showTomadoresModal, setShowTomadoresModal] = useState(false);
+  const [tomadores, setTomadores] = useState([]);
+  const [isLoadingTomadores, setIsLoadingTomadores] = useState(false);
+  const [searchTomador, setSearchTomador] = useState('');
+
+  // Sincroniza com prop do App.jsx (quando clica no Header)
+  useEffect(() => {
+    if (showTomadoresExtra) {
+      handleOpenTomadores();
+    }
+  }, [showTomadoresExtra]);
 
   const onDrop = useCallback(acceptedFiles => {
     if (acceptedFiles?.length > 0) {
@@ -42,7 +56,6 @@ export default function Dashboard() {
     formData.append('competencia', competencia);
 
     try {
-      // Usa a variável de ambiente VITE_API_URL na Vercel, ou localhost rodando local
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       
       const response = await fetch(`${apiUrl}/api/processar`, {
@@ -55,18 +68,24 @@ export default function Dashboard() {
         throw new Error(errorData.detail || 'Erro no processamento da nota');
       }
 
-      const totalNotas = response.headers.get('X-Total-Notas') || 'N/A';
-      const novosClientes = response.headers.get('X-Novos-Clientes') || '0';
-
-      // Tratamento the Blob pra Download
-      const blob = await response.blob();
+      const data = await response.json();
+      
+      // Converte base64 de volta para blob para download
+      const byteCharacters = atob(data.xml_base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/xml' });
       const downloadUrl = window.URL.createObjectURL(blob);
       
       setResultado({
-        totalNotas,
-        novosClientes,
+        totalNotas: data.stats.total_notas,
+        novosClientes: data.stats.nov_clientes || data.stats.novos_clientes,
+        warnings: data.warnings || [],
         downloadUrl,
-        filename: `Lote_XML_${competencia.replace('-', '_')}.xml`
+        filename: data.filename
       });
 
     } catch (err) {
@@ -76,12 +95,39 @@ export default function Dashboard() {
     }
   };
 
+  const handleOpenTomadores = async () => {
+    setShowTomadoresModal(true);
+    setIsLoadingTomadores(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/tomadores`);
+      if (response.ok) {
+        const data = await response.json();
+        setTomadores(data);
+      }
+    } catch (err) {
+      console.error("Erro ao carregar tomadores:", err);
+    } finally {
+      setIsLoadingTomadores(false);
+    }
+  };
+
+  const closeTomadores = () => {
+    setShowTomadoresModal(false);
+    if (onCloseTomadores) onCloseTomadores();
+  };
+
   const handleNovoProcessamento = () => {
     setFile(null);
     setCompetencia('');
     setResultado(null);
     setErro(null);
   };
+
+  const filteredTomadores = tomadores.filter(t => 
+    t.razao_social?.toLowerCase().includes(searchTomador.toLowerCase()) ||
+    t.cnpj?.includes(searchTomador)
+  );
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
@@ -90,7 +136,6 @@ export default function Dashboard() {
         <div className="absolute top-0 right-0 p-32 bg-emerald-500 opacity-[0.03] dark:opacity-[0.05] rounded-full blur-3xl translate-x-10 -translate-y-10 pointer-events-none"></div>
         
         <div className="relative z-10 grid gap-6 md:grid-cols-2">
-          
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 tracking-tight">Novo Envio de RPS em Lote</h2>
             <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm">
@@ -147,7 +192,7 @@ export default function Dashboard() {
 
       {/* Erros da API / Validação */}
       {erro && (
-        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-md p-4 flex items-start space-x-3 text-red-600 dark:text-red-400 duration-300">
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-md p-4 flex items-start space-x-3 text-red-600 dark:text-red-400">
           <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
           <p className="text-sm">{erro}</p>
         </div>
@@ -161,7 +206,7 @@ export default function Dashboard() {
           className={`flex-1 py-4 px-6 rounded-md font-semibold text-lg flex items-center justify-center transition-all duration-300
             ${(!file || !competencia) 
               ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-700' 
-              : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md dark:shadow-emerald-900/50 hover:shadow-lg dark:hover:shadow-emerald-900/80 hover:-translate-y-0.5'
+              : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
             }
           `}
         >
@@ -171,9 +216,7 @@ export default function Dashboard() {
               Processando Arquivo...
             </>
           ) : (
-            <>
-              Gerar Arquivo XML
-            </>
+            <>Gerar Arquivo XML</>
           )}
         </button>
 
@@ -181,7 +224,7 @@ export default function Dashboard() {
           <button
             onClick={handleNovoProcessamento}
             disabled={isProcessing}
-            className="py-4 px-8 rounded-md font-semibold text-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-300 shadow-sm"
+            className="py-4 px-8 rounded-md font-semibold text-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
           >
             Novo Processamento
           </button>
@@ -190,47 +233,187 @@ export default function Dashboard() {
 
       {/* Cards de Sucesso / Resultado Dinâmicos */}
       {resultado && (
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30 rounded-md p-6 sm:p-8 mt-8 animate-in zoom-in-95 duration-500">
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="bg-emerald-100 dark:bg-emerald-500/20 p-2 rounded-full">
-              <CheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+        <div className="space-y-4">
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30 rounded-md p-6 sm:p-8 animate-in zoom-in-95 duration-500">
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="bg-emerald-100 dark:bg-emerald-500/20 p-2 rounded-full">
+                <CheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-emerald-700 dark:text-emerald-400">Sucesso Absoluto!</h3>
+                <p className="text-emerald-600/80 dark:text-slate-300 text-sm">Estrutura de RPS Montada Corretamente</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-emerald-700 dark:text-emerald-400">Sucesso Absoluto!</h3>
-              <p className="text-emerald-600/80 dark:text-slate-300 text-sm">Estrutura de RPS Montada Corretamente</p>
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4 mb-6">
-             <div className="bg-white dark:bg-slate-800/80 rounded-md p-4 border border-emerald-100 dark:border-slate-700 shadow-sm transition-colors duration-300">
+            
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="bg-white dark:bg-slate-800/80 rounded-md p-4 border border-emerald-100 dark:border-slate-700 shadow-sm">
                 <span className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">Notas Fiscais Processadas</span>
                 <p className="text-3xl font-bold text-slate-800 dark:text-white mt-1">{resultado.totalNotas}</p>
-             </div>
-             <div className="bg-white dark:bg-slate-800/80 rounded-md p-4 border border-emerald-100 dark:border-slate-700 shadow-sm transition-colors duration-300">
-                <span className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">Novos CNPJs Validados</span>
+              </div>
+              <div className="bg-white dark:bg-slate-800/80 rounded-md p-4 border border-emerald-100 dark:border-slate-700 shadow-sm">
+                <span className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">Novos Tomadores</span>
                 <p className="text-3xl font-bold text-emerald-600 dark:text-amber-400 mt-1">+{resultado.novosClientes}</p>
-             </div>
+              </div>
+            </div>
+
+            {/* Inteligência de Validação - Alerta de Campos Brancos */}
+            {resultado.warnings?.length > 0 && (
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/30 rounded-md p-4 mb-6 flex items-center justify-between animate-pulse">
+                <div className="flex items-center space-x-3">
+                  <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                  <div>
+                    <p className="text-amber-800 dark:text-amber-300 font-bold">Atenção: Campos em Branco Detectados!</p>
+                    <p className="text-amber-700/80 dark:text-amber-400/80 text-xs">Existem {resultado.warnings.length} inconsistências que podem causar rejeição.</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowWarningsModal(true)}
+                  className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2 rounded-md transition-colors"
+                >
+                  VERIFICAÇÃO
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a 
+                href={resultado.downloadUrl}
+                download={resultado.filename}
+                className="flex-1 inline-flex items-center justify-center bg-emerald-600 dark:bg-white text-white dark:text-emerald-900 font-bold px-8 py-3 rounded-md hover:bg-emerald-700 dark:hover:bg-emerald-50 transition-colors shadow-md"
+              >
+                <Download className="h-5 w-5 mr-2" />
+                BAIXAR ARQUIVO FINAL XML
+              </a>
+
+              <a 
+                href="https://nfe.etransparencia.com.br/sp.caieiras/nfe/principal.aspx"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 inline-flex items-center justify-center bg-slate-800 dark:bg-slate-700 text-white font-bold px-8 py-3 rounded-md hover:bg-slate-900 dark:hover:bg-slate-600 transition-colors shadow-md"
+              >
+                <ExternalLink className="h-5 w-5 mr-2" />
+                VALIDAR ARQUIVO
+              </a>
+            </div>
           </div>
+        </div>
+      )}
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <a 
-              href={resultado.downloadUrl}
-              download={resultado.filename}
-              className="flex-1 inline-flex items-center justify-center bg-emerald-600 dark:bg-white text-white dark:text-emerald-900 font-bold px-8 py-3 rounded-md hover:bg-emerald-700 dark:hover:bg-emerald-50 transition-colors shadow-md dark:shadow-xl"
-            >
-              <Download className="h-5 w-5 mr-2" />
-              BAIXAR ARQUIVO FINAL XML
-            </a>
+      {/* MODAL: Inteligência de Validação (Warnings) */}
+      {showWarningsModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-amber-500/5">
+              <div className="flex items-center space-x-3">
+                <AlertTriangle className="h-6 w-6 text-amber-500" />
+                <h3 className="text-xl font-bold dark:text-white">Relatório de Campos em Branco</h3>
+              </div>
+              <button onClick={() => setShowWarningsModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+                <X className="h-5 w-5 dark:text-slate-400" />
+              </button>
+            </div>
+            
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              <div className="space-y-3">
+                {resultado.warnings.map((w, idx) => (
+                  <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">RPS {w.rps}</span>
+                      <p className="text-slate-800 dark:text-slate-200 font-medium">Campo <span className="text-red-500 underline">{w.campo}</span> obrigatório.</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block uppercase">Status</span>
+                      <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-bold px-2 py-1 rounded">REJEIÇÃO PROVÁVEL</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-            <a 
-              href="https://nfe.etransparencia.com.br/sp.caieiras/nfe/principal.aspx"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 inline-flex items-center justify-center bg-slate-800 dark:bg-slate-700 text-white font-bold px-8 py-3 rounded-md hover:bg-slate-900 dark:hover:bg-slate-600 transition-colors shadow-md border border-slate-700"
-            >
-              <ExternalLink className="h-5 w-5 mr-2" />
-              VALIDAR ARQUIVO
-            </a>
+            <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 text-center">
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                A prefeitura de Caieiras não aceita campos vazios. Por favor, ajuste os dados na sua planilha ERP antes do envio definitivo.
+              </p>
+              <button 
+                onClick={() => setShowWarningsModal(false)}
+                className="w-full bg-slate-800 dark:bg-white text-white dark:text-slate-900 font-bold py-3 rounded-md"
+              >
+                ENTENDI, VOU CORRIGIR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Banco de Tomadores (Supabase) */}
+      {showTomadoresModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-5xl h-[85vh] rounded-md shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-8 duration-500">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-emerald-600">
+              <div className="flex items-center space-x-3 text-white">
+                <Database className="h-6 w-6" />
+                <div>
+                  <h3 className="text-xl font-bold">Base de Tomadores Enriquecida</h3>
+                  <p className="text-emerald-100 text-xs">Dados sincronizados com o seu banco de dados Supabase e BrasilAPI</p>
+                </div>
+              </div>
+              <button onClick={closeTomadores} className="p-2 hover:bg-emerald-700/50 rounded-full transition-colors text-white">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="p-6 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <input 
+                  type="text"
+                  placeholder="Buscar por Razão Social ou CNPJ..."
+                  value={searchTomador}
+                  onChange={(e) => setSearchTomador(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto p-0">
+              {isLoadingTomadores ? (
+                <div className="h-full flex flex-col items-center justify-center space-y-4">
+                  <Loader2 className="h-12 w-12 text-emerald-600 animate-spin" />
+                  <p className="text-slate-500">Consultando Supabase...</p>
+                </div>
+              ) : (
+                <table className="w-full text-left border-collapse">
+                  <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700">
+                    <tr>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">CNPJ</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Razão Social</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Localidade</th>
+                      <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Bairro</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {filteredTomadores.map((t, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                        <td className="px-6 py-4 text-sm font-mono text-slate-600 dark:text-slate-300 font-bold group-hover:text-emerald-600">{t.cnpj}</td>
+                        <td className="px-6 py-4 text-sm text-slate-800 dark:text-slate-200 font-medium">{t.razao_social}</td>
+                        <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{t.municipio} - {t.uf}</td>
+                        <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 italic">{t.bairro || 'Não informado'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+              <span className="text-sm text-slate-500">{filteredTomadores.length} registros encontrados</span>
+              <button 
+                onClick={closeTomadores}
+                className="bg-emerald-600 text-white px-6 py-2 rounded-md font-bold text-sm"
+              >
+                FECHAR
+              </button>
+            </div>
           </div>
         </div>
       )}

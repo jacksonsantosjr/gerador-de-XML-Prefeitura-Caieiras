@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes.upload import router as upload_router
+from app.routes.tomadores import router as tomadores_router
 
 app = FastAPI(
     title="Gerador XML - Prefeitura de Caieiras",
@@ -25,6 +26,7 @@ app.add_middleware(
 )
 
 app.include_router(upload_router, prefix="/api", tags=["Lote XML Upload"])
+app.include_router(tomadores_router, prefix="/api", tags=["Tomadores"])
 
 @app.get("/api/health")
 def health_check():

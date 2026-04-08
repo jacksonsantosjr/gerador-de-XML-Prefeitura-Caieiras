@@ -7,22 +7,24 @@ import io
 
 class XmlGeneratorService:
     @staticmethod
-    def format_comma(value: Any) -> str:
-        """Converte valores para o padrão brasileiro de string com vírgula."""
+    def formatar_valor(value: Any) -> str:
+        """Converte valores para o padrão brasileiro de string com vírgula, com arredondamento de 2 casas."""
         try:
             if value is None or value == "":
                 return "0,00"
-            num = Decimal(str(value))
-            return f"{num:.2f}".replace(".", ",")
+            val = round(float(value), 2)
+            return f"{val:.2f}".replace('.', ',')
         except:
             return "0,00"
 
     @staticmethod
-    def gerar_lote_xml(notas_enriquecidas: List[Dict[str, Any]], data_competencia: str) -> bytes:
+    def gerar_lote_xml(notas_enriquecidas: List[Dict[str, Any]], data_competencia: str) -> tuple[bytes, List[Dict[str, Any]]]:
         """
         Gera o Lote de RPS no padrão Sdt_ProcessarpsIn (Prefeitura de Caieiras).
-        data_competencia no formato YYYY-MM
+        Retorna (bytes do XML, lista de alertas de campos em branco).
         """
+        warnings = []
+        
         # Ano e Mês da competência
         try:
             ano_comp, mes_comp = data_competencia.split("-")
@@ -43,109 +45,153 @@ class XmlGeneratorService:
         etree.SubElement(sdtrps, "Mes").text = mes_comp
         etree.SubElement(sdtrps, "CPFCNPJ").text = settings.PRESTADOR_CNPJ
         
-        # DTIni/DTFin - Usando padrão do modelo (primeiro e último dia ou fixo se preferir)
-        # No modelo colab estava 30/03/2026. Vamos usar a competência.
-        data_ini = f"01/{mes_comp}/{ano_comp}"
-        # Simples aproximação do fim do mês
-        data_fin = f"30/{mes_comp}/{ano_comp}" if mes_comp != "02" else f"28/{mes_comp}/{ano_comp}"
+        # Busca datas min/max do lote conforme Colab
+        datas_emissao = []
+        for nota in notas_enriquecidas:
+            dt = nota.get("DtEmi")
+            if dt:
+                if isinstance(dt, datetime):
+                    datas_emissao.append(dt)
+                else:
+                    try:
+                        datas_emissao.append(datetime.fromisoformat(str(dt).replace('Z', '+00:00')))
+                    except:
+                        pass
         
-        etree.SubElement(sdtrps, "DTIni").text = data_ini
-        etree.SubElement(sdtrps, "DTFin").text = data_fin
+        try:
+            if datas_emissao:
+                data_min = min(datas_emissao).strftime('%d/%m/%Y')
+                data_max = max(datas_emissao).strftime('%d/%m/%Y')
+            else:
+                data_min = f"01/{mes_comp}/{ano_comp}"
+                data_max = f"30/{mes_comp}/{ano_comp}"
+        except:
+            data_min = f"01/{mes_comp}/{ano_comp}"
+            data_max = f"30/{mes_comp}/{ano_comp}"
+        
+        etree.SubElement(sdtrps, "DTIni").text = data_min
+        etree.SubElement(sdtrps, "DTFin").text = data_max
         etree.SubElement(sdtrps, "TipoTrib").text = "1"
-        etree.SubElement(sdtrps, "DtAdeSN").text = ""
-        etree.SubElement(sdtrps, "AlqIssSN_IP").text = ""
-        etree.SubElement(sdtrps, "RegApTribSN").text = ""
-        etree.SubElement(sdtrps, "TribTpSusp").text = ""
-        etree.SubElement(sdtrps, "TribProcSusp").text = ""
+        
+        # Tags vazias conforme Colab
+        for t in ["DtAdeSN", "AlqIssSN_IP", "RegApTribSN", "TribTpSusp", "TribProcSusp"]:
+            etree.SubElement(sdtrps, t)
+            
         etree.SubElement(sdtrps, "Versao").text = "4.00"
 
         # 3. Reg20 (Lista de RPS)
         reg20_parent = etree.SubElement(sdtrps, "Reg20")
 
-        total_iss = Decimal("0.00")
-        total_servicos = Decimal("0.00")
-        qtd_notas = len(notas_enriquecidas)
+        total_iss = 0.0
+        total_servicos = 0.0
+        qtd_notas = 0
+        qtd_reg40 = 0
 
         for nota in notas_enriquecidas:
+            num_rps_raw = str(nota.get("NumRps", "")).strip()
+            if not num_rps_raw: continue
+            
+            num_rps = "".join(filter(str.isdigit, num_rps_raw))
+            
+            # Validação de campos obrigatórios (Inteligência contra campos brancos)
+            campos_obrigatorios = {
+                "RazSocTom": "Razão Social",
+                "LogTom": "Logradouro (Endereço)",
+                "NumEndTom": "Número do Endereço",
+                "BairroTom": "Bairro do Tomador",
+                "MunTom": "Município",
+                "CepTom": "CEP"
+            }
+            
+            for field, label in campos_obrigatorios.items():
+                val = str(nota.get(field, "")).strip()
+                if not val or val.upper() in ["NAO INFORMADO", "00000000"]:
+                    warnings.append({
+                        "rps": num_rps,
+                        "campo": label,
+                        "valor_atual": val or "Vazio"
+                    })
+
             # Item da Nota
             item = etree.SubElement(reg20_parent, "Reg20Item")
             
             etree.SubElement(item, "TipoNFS").text = "RPS"
-            etree.SubElement(item, "NumRps").text = str(nota.get("NumRps", ""))
-            etree.SubElement(item, "SerRps").text = "E"  # Padrão conforme modelo Colab
+            etree.SubElement(item, "NumRps").text = num_rps
+            etree.SubElement(item, "SerRps").text = "E"
             
-            # Data Emissão (DD/MM/YYYY)
-            dt_emissao = nota.get("DtEmi", "")
+            dt_emissao = nota.get("DtEmi")
             if isinstance(dt_emissao, datetime):
                 dt_str = dt_emissao.strftime("%d/%m/%Y")
             else:
-                # Tentar converter se for string ISO
                 try:
                     dt_obj = datetime.fromisoformat(str(dt_emissao).replace('Z', '+00:00'))
                     dt_str = dt_obj.strftime("%d/%m/%Y")
                 except:
-                    dt_str = str(dt_emissao)
+                    dt_str = data_min
 
             etree.SubElement(item, "DtEmi").text = dt_str
             etree.SubElement(item, "RetFonte").text = "NAO"
             etree.SubElement(item, "CodSrv").text = settings.COD_SERVICO_FIXO
             etree.SubElement(item, "DiscrSrv").text = settings.DISCRIMINACAO_FIXA
             
-            v_nfs = Decimal(str(nota.get("VlNFS_Calculado", 0.0)))
-            v_iss = Decimal(str(nota.get("VlIss_Calculado", 0.0)))
-            total_servicos += v_nfs
-            total_iss += v_iss
+            # Valores
+            try:
+                v_nfs_raw = float(nota.get("VlNFS_Calculado", 0.0))
+                v_iss_raw = float(nota.get("VlIss_Calculado", 0.0))
+                
+                v_nfs_final = round(v_nfs_raw, 2)
+                v_iss_final = round(v_iss_raw, 2)
+            except:
+                v_nfs_final = 0.0
+                v_iss_final = 0.0
 
-            etree.SubElement(item, "VlNFS").text = XmlGeneratorService.format_comma(v_nfs)
+            total_servicos += v_nfs_final
+            total_iss += v_iss_final
+            qtd_notas += 1
+
+            etree.SubElement(item, "VlNFS").text = XmlGeneratorService.formatar_valor(v_nfs_final)
             etree.SubElement(item, "VlDed").text = "0,00"
-            etree.SubElement(item, "DiscrDed").text = ""
-            etree.SubElement(item, "VlBasCalc").text = XmlGeneratorService.format_comma(v_nfs)
+            etree.SubElement(item, "DiscrDed")
+            etree.SubElement(item, "VlBasCalc").text = XmlGeneratorService.formatar_valor(v_nfs_final)
             etree.SubElement(item, "AlqIss").text = "2,00"
-            etree.SubElement(item, "VlIss").text = XmlGeneratorService.format_comma(v_iss)
+            etree.SubElement(item, "VlIss").text = XmlGeneratorService.formatar_valor(v_iss_final)
             etree.SubElement(item, "VlIssRet").text = "0,00"
             
-            etree.SubElement(item, "CpfCnpTom").text = str(nota.get("CpfCnpTom", ""))
-            etree.SubElement(item, "RazSocTom").text = str(nota.get("RazSocTom", "")).upper()
-            etree.SubElement(item, "TipoLogtom").text = str(nota.get("TipoLogtom", "RUA")).upper()
-            etree.SubElement(item, "LogTom").text = str(nota.get("LogTom", "")).upper()
-            etree.SubElement(item, "NumEndTom").text = str(nota.get("NumEndTom", "S/N"))
-            etree.SubElement(item, "ComplEndTom").text = ""
-            etree.SubElement(item, "BairroTom").text = str(nota.get("BairroTom", "")).upper()
-            etree.SubElement(item, "MunTom").text = str(nota.get("MunTom", "")).upper()
-            etree.SubElement(item, "SiglaUFTom").text = str(nota.get("SiglaUFTom", "SP")).upper()
-            etree.SubElement(item, "CepTom").text = str(nota.get("CepTom", ""))
-            etree.SubElement(item, "Telefone").text = ""
-            etree.SubElement(item, "InscricaoMunicipal").text = ""
+            # Tomador
+            etree.SubElement(item, "CpfCnpTom").text = "".join(filter(str.isdigit, str(nota.get("CpfCnpTom", ""))))
+            etree.SubElement(item, "RazSocTom").text = str(nota.get("RazSocTom", ""))[:100]
+
+            # Endereço
+            etree.SubElement(item, "TipoLogtom").text = str(nota.get("TipoLogtom", "RUA")).strip() or "RUA"
+            etree.SubElement(item, "LogTom").text = str(nota.get("LogTom", "")).strip()
+            etree.SubElement(item, "NumEndTom").text = str(nota.get("NumEndTom", "S/N")).strip()
+            etree.SubElement(item, "ComplEndTom")
+            etree.SubElement(item, "BairroTom").text = str(nota.get("BairroTom", "")).strip()
+            etree.SubElement(item, "MunTom").text = str(nota.get("MunTom", "SAO PAULO")).strip().upper() or "SAO PAULO"
+            etree.SubElement(item, "SiglaUFTom").text = str(nota.get("SiglaUFTom", "SP")).strip().upper() or "SP"
+            etree.SubElement(item, "CepTom").text = "".join(filter(str.isdigit, str(nota.get("CepTom", ""))))
+            etree.SubElement(item, "Telefone")
+            etree.SubElement(item, "InscricaoMunicipal")
             
-            # Local Prestação
-            etree.SubElement(item, "TipoLogLocPre").text = ""
-            etree.SubElement(item, "LogLocPre").text = ""
-            etree.SubElement(item, "NumEndLocPre").text = ""
-            etree.SubElement(item, "ComplEndLocPre").text = ""
-            etree.SubElement(item, "BairroLocPre").text = ""
-            etree.SubElement(item, "MunLocPre").text = ""
-            etree.SubElement(item, "SiglaUFLocpre").text = ""
-            etree.SubElement(item, "CepLocPre").text = ""
+            # Local Prestação (Vazios conforme Colab)
+            for t in ["TipoLogLocPre", "LogLocPre", "NumEndLocPre", "ComplEndLocPre", "BairroLocPre", "MunLocPre", "SiglaUFLocpre", "CepLocPre"]:
+                etree.SubElement(item, t)
             
-            # Email (Fixo conforme modelo ou vazio)
             etree.SubElement(item, "Email1").text = "xml@processamento.com.br"
-            etree.SubElement(item, "Email2").text = ""
-            etree.SubElement(item, "Email3").text = ""
+            etree.SubElement(item, "Email2")
+            etree.SubElement(item, "Email3")
 
             # 4. Reg40
             reg40 = etree.SubElement(item, "Reg40")
-            
-            # NBS Item
-            r40_nbs = etree.SubElement(reg40, "Reg40Item")
-            etree.SubElement(r40_nbs, "SiglaCpoAdc").text = "SRV_NBS"
-            etree.SubElement(r40_nbs, "ConteudoCpoAdc").text = settings.PADRAO_COD_NBS
-            
-            # CTN Item
-            r40_ctn = etree.SubElement(reg40, "Reg40Item")
-            etree.SubElement(r40_ctn, "SiglaCpoAdc").text = "SRV_CTN"
-            etree.SubElement(r40_ctn, "ConteudoCpoAdc").text = settings.PADRAO_COD_CTN
+            r1 = etree.SubElement(reg40, "Reg40Item")
+            etree.SubElement(r1, "SiglaCpoAdc").text = "SRV_NBS"
+            etree.SubElement(r1, "ConteudoCpoAdc").text = "".join(filter(str.isdigit, settings.PADRAO_COD_NBS))
+            r2 = etree.SubElement(reg40, "Reg40Item")
+            etree.SubElement(r2, "SiglaCpoAdc").text = "SRV_CTN"
+            etree.SubElement(r2, "ConteudoCpoAdc").text = "".join(filter(str.isdigit, settings.PADRAO_COD_CTN))
+            qtd_reg40 += 2
 
-            # 5. Reg60_RTC (Impostos e Tributação Complementar)
+            # 5. Reg60_RTC
             reg60 = etree.SubElement(item, "Reg60_RTC")
             etree.SubElement(reg60, "Finalidade").text = "0"
             etree.SubElement(reg60, "IndConsFin").text = "NAO"
@@ -154,31 +200,32 @@ class XmlGeneratorService:
             etree.SubElement(reg60, "IndCodOpe").text = "100301"
             etree.SubElement(reg60, "VlReeRepRes").text = "0,00"
             
-            gibs = etree.SubElement(reg60, "gIBSCBS")
-            etree.SubElement(gibs, "CST").text = "000"
-            etree.SubElement(gibs, "CClassTrib").text = "000001"
-            etree.SubElement(gibs, "CCodCredPres").text = "12"
+            g1 = etree.SubElement(reg60, "gIBSCBS")
+            etree.SubElement(g1, "CST").text = "000"
+            etree.SubElement(g1, "CClassTrib").text = "000001"
+            etree.SubElement(g1, "CCodCredPres").text = "12"
             
-            gtrib = etree.SubElement(reg60, "gTribReg")
-            etree.SubElement(gtrib, "CST").text = "000"
-            etree.SubElement(gtrib, "CClassTrib").text = "000001"
+            g2 = etree.SubElement(reg60, "gTribReg")
+            etree.SubElement(g2, "CST").text = "000"
+            etree.SubElement(g2, "CClassTrib").text = "000001"
             
-            gdif = etree.SubElement(reg60, "gDif")
-            etree.SubElement(gdif, "PDifUF").text = "0,00"
-            etree.SubElement(gdif, "PDifMun").text = "0,10"
-            etree.SubElement(gdif, "PDifCBS").text = "0,90"
+            g3 = etree.SubElement(reg60, "gDif")
+            etree.SubElement(g3, "PDifUF").text = "0,00"
+            etree.SubElement(g3, "PDifMun").text = "0,10"
+            etree.SubElement(g3, "PDifCBS").text = "0,90"
 
-        # 6. Reg90 (Rodapé de Totais)
+        # 6. Reg90 (Rodapé)
         reg90 = etree.SubElement(sdtrps, "Reg90")
         etree.SubElement(reg90, "QtdRegNormal").text = str(qtd_notas)
-        etree.SubElement(reg90, "ValorNFS").text = XmlGeneratorService.format_comma(total_servicos)
-        etree.SubElement(reg90, "ValorISS").text = XmlGeneratorService.format_comma(total_iss)
+        etree.SubElement(reg90, "ValorNFS").text = XmlGeneratorService.formatar_valor(total_servicos)
+        etree.SubElement(reg90, "ValorISS").text = XmlGeneratorService.formatar_valor(total_iss)
         etree.SubElement(reg90, "ValorDed").text = "0,00"
         etree.SubElement(reg90, "ValorIssRetTom").text = "0,00"
         etree.SubElement(reg90, "QtdReg30").text = "0"
         etree.SubElement(reg90, "ValorTributos").text = "0,00"
-        etree.SubElement(reg90, "QtdReg40").text = str(qtd_notas * 2) # 2 subitens Reg40 por nota
+        etree.SubElement(reg90, "QtdReg40").text = str(qtd_reg40)
         etree.SubElement(reg90, "QtdReg50").text = "0"
 
         # Finalização com UTF-8 e Declaração XML
-        return etree.tostring(root, encoding="utf-8", xml_declaration=True, pretty_print=True)
+        xml_bytes = etree.tostring(root, encoding="utf-8", xml_declaration=True, pretty_print=True)
+        return xml_bytes, warnings

@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [showTomadores, setShowTomadores] = useState(false);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -17,9 +18,16 @@ function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-      <Header toggleTheme={toggleTheme} isDarkMode={isDarkMode} />
+      <Header 
+        toggleTheme={toggleTheme} 
+        isDarkMode={isDarkMode} 
+        onOpenTomadores={() => setShowTomadores(true)} 
+      />
       <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        <Dashboard />
+        <Dashboard 
+          showTomadoresExtra={showTomadores} 
+          onCloseTomadores={() => setShowTomadores(false)} 
+        />
       </main>
     </div>
   );
