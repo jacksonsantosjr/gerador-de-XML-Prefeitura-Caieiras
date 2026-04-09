@@ -4,6 +4,7 @@ import { ArrowRight, FileText } from 'lucide-react';
 const Hero = ({ onAccess, isExiting }) => {
   return (
     <section className={`hero ${isExiting ? 'exit' : ''}`}>
+      <div className="hero-background"></div>
       <div className="hero-content">
         <div className="hero-badge">
           <FileText size={16} />
