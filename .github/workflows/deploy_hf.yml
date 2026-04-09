@@ -1,4 +1,4 @@
-name: Sync to Hugging Face Hub
+name: Sync to Hugging Face Hub # Trigger com novos segredos (Token Write + URL correta)
 on:
   push:
     branches: [main]
