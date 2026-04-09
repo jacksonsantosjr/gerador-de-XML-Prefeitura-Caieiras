@@ -29,19 +29,21 @@ function App() {
   return (
     <>
       {showHero && <Hero onAccess={handleAccess} isExiting={isHeroExiting} />}
-      <div className="min-h-screen flex flex-col bg-stone-100 dark:bg-slate-900 transition-colors duration-300">
-        <Header 
-          toggleTheme={toggleTheme} 
-          isDarkMode={isDarkMode} 
-          onOpenTomadores={() => setShowTomadores(true)} 
-        />
-        <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-          <Dashboard 
-            showTomadoresExtra={showTomadores} 
-            onCloseTomadores={() => setShowTomadores(false)} 
+      {!showHero && (
+        <div className="min-h-screen flex flex-col bg-stone-100 dark:bg-slate-900 transition-colors duration-300">
+          <Header 
+            toggleTheme={toggleTheme} 
+            isDarkMode={isDarkMode} 
+            onOpenTomadores={() => setShowTomadores(true)} 
           />
-        </main>
-      </div>
+          <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+            <Dashboard 
+              showTomadoresExtra={showTomadores} 
+              onCloseTomadores={() => setShowTomadores(false)} 
+            />
+          </main>
+        </div>
+      )}
     </>
   );
 }
