@@ -93,6 +93,11 @@ class XmlGeneratorService:
             
             num_rps = "".join(filter(str.isdigit, num_rps_raw))
             
+            raw_cnpj = str(nota.get("CpfCnpTom", "")).strip()
+            if str(raw_cnpj).lower() == 'nan': raw_cnpj = ""
+            num_cnpj = "".join(filter(str.isdigit, raw_cnpj))
+            cnpj_final = num_cnpj if num_cnpj else raw_cnpj
+            
             # Validação de campos obrigatórios (Inteligência contra campos brancos)
             campos_obrigatorios = {
                 "RazSocTom": "Razão Social",
@@ -105,10 +110,10 @@ class XmlGeneratorService:
             
             for field, label in campos_obrigatorios.items():
                 val = str(nota.get(field, "")).strip()
-                if not val or val.upper() in ["NAO INFORMADO", "00000000"]:
+                if not val or val.upper() in ["NAO INFORMADO", "00000000", "NAN", "NONE"]:
                     warnings.append({
                         "rps": num_rps,
-                        "cnpj": "".join(filter(str.isdigit, str(nota.get("CpfCnpTom", "")))),
+                        "cnpj": cnpj_final,
                         "campo": label,
                         "field": field,
                         "valor_atual": val or "Vazio"

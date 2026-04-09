@@ -376,7 +376,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
                     <div>
                       <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">RPS {w.rps}</span>
                       <p className="text-stone-800 dark:text-stone-200 font-medium">Campo <span className="text-red-500 underline">{w.campo}</span> obrigatório.</p>
-                      <p className="text-[10px] text-stone-500">CNPJ: {w.cnpj}</p>
+                      <p className="text-[10px] text-stone-500">CNPJ: <strong className="text-stone-700 dark:text-stone-300">{w.cnpj || 'EM BRANCO / NÃO INFORMADO'}</strong></p>
                     </div>
                     <div className="flex items-center space-x-4">
                       <div className="text-right">
@@ -463,21 +463,27 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
                 <table className="w-full text-left border-collapse">
                   <thead className="sticky top-0 bg-stone-50 dark:bg-slate-800/80 backdrop-blur-md border-b border-stone-200 dark:border-slate-700">
                     <tr>
-                      <th className="px-6 py-4 text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">CNPJ</th>
-                      <th className="px-6 py-4 text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Razão Social</th>
-                      <th className="px-6 py-4 text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Localidade</th>
-                      <th className="px-6 py-4 text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Bairro</th>
-                      <th className="px-6 py-4 text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider text-right">Ações</th>
+                      <th className="px-3 py-3 text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">CNPJ</th>
+                      <th className="px-3 py-3 text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Razão Social</th>
+                      <th className="px-3 py-3 text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Logradouro</th>
+                      <th className="px-3 py-3 text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Nº</th>
+                      <th className="px-3 py-3 text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Bairro</th>
+                      <th className="px-3 py-3 text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Cidade/UF</th>
+                      <th className="px-3 py-3 text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">CEP</th>
+                      <th className="px-3 py-3 text-[11px] font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100 dark:divide-slate-800">
                     {filteredTomadores.map((t, idx) => (
                       <tr key={idx} className="hover:bg-stone-50 dark:hover:bg-slate-800/50 transition-colors group">
-                        <td className="px-6 py-4 text-sm font-mono text-stone-600 dark:text-stone-300 font-bold group-hover:text-emerald-600">{t.cnpj}</td>
-                        <td className="px-6 py-4 text-sm text-stone-800 dark:text-stone-200 font-medium">{t.razao_social}</td>
-                        <td className="px-6 py-4 text-sm text-stone-600 dark:text-stone-400">{t.municipio} - {t.uf}</td>
-                        <td className="px-6 py-4 text-sm text-stone-600 dark:text-stone-400 italic">{t.bairro || 'Não informado'}</td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-3 py-3 text-xs font-mono text-stone-600 dark:text-stone-300 font-bold group-hover:text-emerald-600 truncate max-w-[110px]" title={t.cnpj}>{t.cnpj}</td>
+                        <td className="px-3 py-3 text-xs text-stone-800 dark:text-stone-200 font-medium truncate max-w-[130px]" title={t.razao_social}>{t.razao_social || <span className="text-red-500 font-bold">Vazio</span>}</td>
+                        <td className="px-3 py-3 text-xs text-stone-600 dark:text-stone-400 truncate max-w-[130px]" title={(t.tipo_logradouro ? t.tipo_logradouro + ' ' : '') + (t.logradouro || '')}>{(t.tipo_logradouro ? t.tipo_logradouro + ' ' : '')}{t.logradouro || <span className="text-red-500 font-bold">Vazio</span>}</td>
+                        <td className="px-3 py-3 text-xs text-stone-600 dark:text-stone-400">{t.numero || <span className="text-red-500 font-bold">Vazio</span>}</td>
+                        <td className="px-3 py-3 text-xs text-stone-600 dark:text-stone-400 truncate max-w-[100px]">{t.bairro || <span className="text-red-500 font-bold">Vazio</span>}</td>
+                        <td className="px-3 py-3 text-xs text-stone-600 dark:text-stone-400 truncate max-w-[100px]">{t.municipio || <span className="text-red-500 font-bold">Vazio</span>} - {t.uf}</td>
+                        <td className="px-3 py-3 text-xs text-stone-600 dark:text-stone-400">{t.cep || <span className="text-red-500 font-bold">Vazio</span>}</td>
+                        <td className="px-3 py-3 text-right">
                           <button 
                             onClick={() => setEditingTomador({...t})} 
                             className="p-2 text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-full transition-colors"
