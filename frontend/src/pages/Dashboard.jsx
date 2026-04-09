@@ -132,31 +132,16 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
   };
 
   const handleOpenCorrection = (w) => {
-    if (!w.cnpj || w.cnpj === 'Vazio' || w.cnpj === 'Não Informado' || String(w.cnpj).trim() === '') {
-      setShowWarningsModal(false);
-      handleOpenTomadores();
-      return;
-    }
-
     setShowWarningsModal(false);
-    const t = tomadores.find(tom => tom.cnpj === w.cnpj);
     
-    if (t) {
-      setEditingTomador(t);
+    // Injeta o CNPJ na busca para já abrir o modal com o tomador filtrado
+    if (w.cnpj && w.cnpj !== 'Vazio' && w.cnpj !== 'Não Informado' && String(w.cnpj).trim() !== '') {
+      setSearchTomador(w.cnpj);
     } else {
-      setEditingTomador({
-        cnpj: w.cnpj,
-        razao_social: '',
-        tipo_logradouro: 'RUA',
-        logradouro: '',
-        numero: 'S/N',
-        complemento: '',
-        bairro: '',
-        municipio: '',
-        uf: 'SP',
-        cep: ''
-      });
+      setSearchTomador('');
     }
+    
+    handleOpenTomadores();
   };
 
   const filteredTomadores = tomadores.filter(t => 
@@ -445,15 +430,26 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
             </div>
 
             <div className="p-6 bg-white dark:bg-slate-900 border-b border-stone-100 dark:border-slate-800">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
-                <input 
-                  type="text"
-                  placeholder="Buscar por Razão Social ou CNPJ..."
-                  value={searchTomador}
-                  onChange={(e) => setSearchTomador(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-stone-50 dark:bg-slate-950 border border-stone-200 dark:border-stone-700 rounded-md outline-none focus:ring-2 focus:ring-emerald-500 text-stone-700 dark:text-white"
-                />
+              <div className="flex gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
+                  <input 
+                    type="text"
+                    placeholder="Buscar por Razão Social ou CNPJ..."
+                    value={searchTomador}
+                    onChange={(e) => setSearchTomador(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-stone-50 dark:bg-slate-950 border border-stone-200 dark:border-stone-700 rounded-md outline-none focus:ring-2 focus:ring-emerald-500 text-stone-700 dark:text-white"
+                  />
+                </div>
+                <button
+                  onClick={() => setEditingTomador({ 
+                    cnpj: searchTomador.replace(/[^0-9]/g, '').length >= 11 ? searchTomador : '', 
+                    razao_social: '', tipo_logradouro: 'RUA', logradouro: '', numero: 'S/N', complemento: '', bairro: '', municipio: '', uf: 'SP', cep: '' 
+                  })}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-md transition-colors whitespace-nowrap flex items-center shadow-sm"
+                >
+                  + NOVO TOMADOR
+                </button>
               </div>
             </div>
 

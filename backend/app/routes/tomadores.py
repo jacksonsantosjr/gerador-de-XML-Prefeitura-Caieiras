@@ -13,7 +13,7 @@ def list_tomadores(db: Session = Depends(get_db)):
     tomadores = db.query(Tomador).order_by(Tomador.razao_social).all()
     return tomadores
 
-@router.patch("/tomadores/{cnpj}")
+@router.patch("/tomadores/{cnpj:path}")
 def update_tomador(cnpj: str, obj_in: TomadorUpdate, db: Session = Depends(get_db)):
     """Atualiza dados de um tomador pelo CNPJ."""
     tomador = db.query(Tomador).filter(Tomador.cnpj == cnpj).first()
