@@ -16,11 +16,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
   const [isLoadingTomadores, setIsLoadingTomadores] = useState(false);
   const [searchTomador, setSearchTomador] = useState('');
 
-  // Modal de Correção
-  const [showCorrectionModal, setShowCorrectionModal] = useState(false);
-  const [currentWarning, setCurrentWarning] = useState(null);
-  const [correctionValue, setCorrectionValue] = useState('');
-  const [isSavingCorrection, setIsSavingCorrection] = useState(false);
+  // Mensagens Genéricas
   const [genericModalMsg, setGenericModalMsg] = useState(null);
 
   // Edição Direta de Tomador
@@ -135,50 +131,25 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
     setErro(null);
   };
 
-  const handleOpenCorrection = (warning) => {
-    setCurrentWarning(warning);
-    setCorrectionValue(warning.valor_atual === 'Vazio' ? '' : warning.valor_atual);
-    setShowCorrectionModal(true);
-  };
-
-  const handleSaveCorrection = async () => {
-    if (!currentWarning || !correctionValue) return;
-
-    setIsSavingCorrection(true);
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-      
-      // Mapeamento de campo técnico do XML para campo do Banco
-      const fieldMapping = {
-        "RazSocTom": "razao_social",
-        "LogTom": "logradouro",
-        "NumEndTom": "numero",
-        "BairroTom": "bairro",
-        "MunTom": "municipio",
-        "CepTom": "cep"
-      };
-
-      const dbField = fieldMapping[currentWarning.field];
-      
-      const response = await fetch(`${apiUrl}/api/tomadores/${currentWarning.cnpj}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [dbField]: correctionValue })
+  const handleOpenCorrection = (w) => {
+    setShowWarningsModal(false);
+    const t = tomadores.find(tom => tom.cnpj === w.cnpj);
+    
+    if (t) {
+      setEditingTomador(t);
+    } else {
+      setEditingTomador({
+        cnpj: w.cnpj,
+        razao_social: '',
+        tipo_logradouro: 'RUA',
+        logradouro: '',
+        numero: 'S/N',
+        complemento: '',
+        bairro: '',
+        municipio: '',
+        uf: 'SP',
+        cep: ''
       });
-
-      if (response.ok) {
-        setShowCorrectionModal(false);
-        // Reprocessa imediatamente
-        handleProcessar();
-      } else {
-        const errData = await response.json().catch(() => null);
-        setGenericModalMsg(errData?.detail || errData?.error || "Erro ao salvar correção. O servidor retornou uma falha ou o Tomador não possui CNPJ válido.");
-      }
-    } catch (err) {
-      console.error("Erro na correção:", err);
-      setGenericModalMsg("Erro de conexão ao tentar salvar a correção.");
-    } finally {
-      setIsSavingCorrection(false);
     }
   };
 
@@ -417,12 +388,6 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
                       <p className="text-[10px] text-stone-500">CNPJ: {w.cnpj}</p>
                     </div>
                     <div className="flex items-center space-x-4">
-                      <button 
-                        onClick={() => handleOpenCorrection(w)}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-2 rounded transition-all opacity-100"
-                      >
-                        CORRIGIR AGORA
-                      </button>
                       <div className="text-right">
                         <span className="text-[10px] text-stone-500 block uppercase">Status</span>
                         <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-bold px-2 py-1 rounded">REJEIÇÃO PROVÁVEL</span>
@@ -439,16 +404,16 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mt-4">
                 <button 
-                  onClick={() => setShowWarningsModal(false)}
-                  className="w-full bg-stone-300 dark:bg-slate-800 hover:bg-stone-400 dark:hover:bg-slate-700 text-stone-800 dark:text-white font-bold py-3 rounded-md transition-colors"
-                >
-                  CANCELAR
-                </button>
-                <button 
                   onClick={() => handleOpenCorrection(resultado.warnings[0])}
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-md transition-colors"
                 >
                   CORRIGIR AGORA
+                </button>
+                <button 
+                  onClick={() => setShowWarningsModal(false)}
+                  className="w-full bg-stone-300 dark:bg-slate-800 hover:bg-stone-400 dark:hover:bg-slate-700 text-stone-800 dark:text-white font-bold py-3 rounded-md transition-colors"
+                >
+                  CANCELAR
                 </button>
               </div>
             </div>
@@ -539,45 +504,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
         </div>
       )}
 
-      {/* MODAL: Correção Rápida */}
-      {showCorrectionModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-md shadow-2xl border border-stone-200 dark:border-slate-800 overflow-hidden">
-            <div className="p-6 border-b border-stone-100 dark:border-slate-800 flex justify-between items-center bg-emerald-600 text-white">
-              <div className="flex items-center space-x-2">
-                <Info className="h-5 w-5" />
-                <h3 className="font-bold">Correção de Tomador</h3>
-              </div>
-              <button onClick={() => setShowCorrectionModal(false)}><X className="h-5 w-5" /></button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="text-xs font-bold text-stone-600 uppercase">Ajustar o campo:</label>
-                <p className="text-stone-800 dark:text-white font-medium">{currentWarning?.campo}</p>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-stone-600 uppercase">Novo Valor:</label>
-                <input 
-                  type="text"
-                  value={correctionValue}
-                  onChange={(e) => setCorrectionValue(e.target.value)}
-                  className="w-full mt-1 bg-stone-50 dark:bg-slate-950 border border-stone-300 dark:border-stone-700 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 text-stone-800 dark:text-white"
-                  placeholder={`Digite o ${currentWarning?.campo}...`}
-                  autoFocus
-                />
-              </div>
-              <button 
-                onClick={handleSaveCorrection}
-                disabled={isSavingCorrection || !correctionValue}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-md flex items-center justify-center"
-              >
-                {isSavingCorrection ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
-                SALVAR E REPROCESSAR
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* MODAL: Edição Completa de Tomador */}
       {editingTomador && (
