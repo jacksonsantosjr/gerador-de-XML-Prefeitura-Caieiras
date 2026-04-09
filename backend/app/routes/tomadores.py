@@ -17,12 +17,18 @@ def list_tomadores(db: Session = Depends(get_db)):
 def update_tomador(cnpj: str, obj_in: TomadorUpdate, db: Session = Depends(get_db)):
     """Atualiza dados de um tomador pelo CNPJ."""
     tomador = db.query(Tomador).filter(Tomador.cnpj == cnpj).first()
-    if not tomador:
-        raise HTTPException(status_code=404, detail="Tomador não encontrado no banco de dados para ser atualizado.")
-    
     update_data = obj_in.model_dump(exclude_unset=True)
-    for field in update_data:
-        setattr(tomador, field, update_data[field])
+    
+    if not tomador:
+        # Cria um novo tomador (Upsert)
+        if 'razao_social' not in update_data or not update_data['razao_social']:
+            update_data['razao_social'] = "RAZÃO SOCIAL NÃO INFORMADA"
+            
+        tomador = Tomador(cnpj=cnpj, **update_data)
+        db.add(tomador)
+    else:
+        for field in update_data:
+            setattr(tomador, field, update_data[field])
     
     db.commit()
     db.refresh(tomador)

@@ -132,6 +132,11 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
   };
 
   const handleOpenCorrection = (w) => {
+    if (!w.cnpj || w.cnpj === 'Vazio' || w.cnpj === 'Não Informado' || String(w.cnpj).trim() === '') {
+      setGenericModalMsg("Este tomador não possui um CNPJ válido atrelado na planilha. Edite o arquivo original no seu ERP, pois não é possível associá-lo no banco de dados isoladamente.");
+      return;
+    }
+
     setShowWarningsModal(false);
     const t = tomadores.find(tom => tom.cnpj === w.cnpj);
     
