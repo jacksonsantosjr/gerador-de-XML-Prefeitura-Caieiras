@@ -108,7 +108,9 @@ class XmlGeneratorService:
                 if not val or val.upper() in ["NAO INFORMADO", "00000000"]:
                     warnings.append({
                         "rps": num_rps,
+                        "cnpj": "".join(filter(str.isdigit, str(nota.get("CpfCnpTom", "")))),
                         "campo": label,
+                        "field": field,
                         "valor_atual": val or "Vazio"
                     })
 

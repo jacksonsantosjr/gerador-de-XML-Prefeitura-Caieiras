@@ -16,6 +16,12 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
   const [isLoadingTomadores, setIsLoadingTomadores] = useState(false);
   const [searchTomador, setSearchTomador] = useState('');
 
+  // Modal de Correção
+  const [showCorrectionModal, setShowCorrectionModal] = useState(false);
+  const [currentWarning, setCurrentWarning] = useState(null);
+  const [correctionValue, setCorrectionValue] = useState('');
+  const [isSavingCorrection, setIsSavingCorrection] = useState(false);
+
   // Sincroniza com prop do App.jsx (quando clica no Header)
   useEffect(() => {
     if (showTomadoresExtra) {
@@ -124,6 +130,51 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
     setErro(null);
   };
 
+  const handleOpenCorrection = (warning) => {
+    setCurrentWarning(warning);
+    setCorrectionValue(warning.valor_atual === 'Vazio' ? '' : warning.valor_atual);
+    setShowCorrectionModal(true);
+  };
+
+  const handleSaveCorrection = async () => {
+    if (!currentWarning || !correctionValue) return;
+
+    setIsSavingCorrection(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      
+      // Mapeamento de campo técnico do XML para campo do Banco
+      const fieldMapping = {
+        "RazSocTom": "razao_social",
+        "LogTom": "logradouro",
+        "NumEndTom": "numero",
+        "BairroTom": "bairro",
+        "MunTom": "municipio",
+        "CepTom": "cep"
+      };
+
+      const dbField = fieldMapping[currentWarning.field];
+      
+      const response = await fetch(`${apiUrl}/api/tomadores/${currentWarning.cnpj}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [dbField]: correctionValue })
+      });
+
+      if (response.ok) {
+        setShowCorrectionModal(false);
+        // Reprocessa imediatamente
+        handleProcessar();
+      } else {
+        alert("Erro ao salvar correção.");
+      }
+    } catch (err) {
+      console.error("Erro na correção:", err);
+    } finally {
+      setIsSavingCorrection(false);
+    }
+  };
+
   const filteredTomadores = tomadores.filter(t => 
     t.razao_social?.toLowerCase().includes(searchTomador.toLowerCase()) ||
     t.cnpj?.includes(searchTomador)
@@ -132,26 +183,26 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
       {/* Header Info */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md p-6 md:p-8 shadow-sm dark:shadow-2xl overflow-hidden relative transition-colors duration-300">
+      <div className="bg-white dark:bg-slate-900 border border-stone-300 dark:border-slate-800 rounded-md p-6 md:p-8 shadow-md dark:shadow-2xl overflow-hidden relative transition-colors duration-300">
         <div className="absolute top-0 right-0 p-32 bg-emerald-500 opacity-[0.03] dark:opacity-[0.05] rounded-full blur-3xl translate-x-10 -translate-y-10 pointer-events-none"></div>
         
         <div className="relative z-10 grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 tracking-tight">Novo Envio de RPS em Lote</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm">
+            <h2 className="text-2xl font-bold text-stone-800 dark:text-white mb-1 tracking-tight">Novo Envio de RPS em Lote</h2>
+            <p className="text-stone-600 dark:text-slate-400 text-sm max-w-sm">
               Faça upload do relatório do ERP para gerar o XML exigido pela Prefeitura de Caieiras.
             </p>
           </div>
 
-          <div className="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-md border border-slate-200 dark:border-slate-800 backdrop-blur-sm self-center transition-colors duration-300">
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Competência (Mês/Ano)</label>
+          <div className="bg-stone-50 dark:bg-slate-900/50 p-5 rounded-md border border-stone-200 dark:border-slate-800 backdrop-blur-sm self-center transition-colors duration-300">
+            <label className="block text-sm font-medium text-stone-700 dark:text-slate-300 mb-2">Competência (Mês/Ano)</label>
             <input 
               type="month"
               value={competencia}
               onChange={(e) => setCompetencia(e.target.value)}
-              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-600 rounded-md px-4 py-2.5 text-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all duration-300 [color-scheme:light] dark:[color-scheme:dark]"
+              className="w-full bg-white dark:bg-slate-950 border border-stone-400 dark:border-slate-600 rounded-md px-4 py-2.5 text-stone-800 dark:text-stone-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all duration-300 [color-scheme:light] dark:[color-scheme:dark]"
             />
-            <p className="text-xs text-slate-500 mt-2">Data exigida no Cabeçalho (SDTRPS &gt; Ano/Mes) do RPS</p>
+            <p className="text-xs text-stone-600 mt-2">Data exigida no Cabeçalho (SDTRPS &gt; Ano/Mes) do RPS</p>
           </div>
         </div>
       </div>
@@ -160,30 +211,30 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
       <div 
         {...getRootProps()} 
         className={`relative border-2 border-dashed rounded-md p-10 transition-all cursor-pointer flex flex-col items-center justify-center text-center duration-300
-          ${isDragActive ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'border-slate-200 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-slate-600 bg-white dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-900'}
+          ${isDragActive ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'border-stone-300 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-slate-600 bg-white dark:bg-slate-900/50 hover:bg-stone-50 dark:hover:bg-slate-900'}
           ${file ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-500/50 dark:bg-emerald-500/5' : ''}
         `}
       >
         <input {...getInputProps()} />
         
-        <div className="h-16 w-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 shadow-sm dark:shadow-inner ring-1 ring-slate-200 dark:ring-white/10 group-hover:ring-emerald-500/50 transition-all">
+        <div className="h-16 w-16 bg-stone-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 shadow-sm dark:shadow-inner ring-1 ring-stone-200 dark:ring-white/10 group-hover:ring-emerald-500/50 transition-all">
           {file ? (
             <FileType className="h-8 w-8 text-emerald-500 dark:text-emerald-400" />
           ) : (
-            <UploadCloud className={`h-8 w-8 ${isDragActive ? 'text-emerald-500 dark:text-emerald-400 animate-bounce' : 'text-slate-400'}`} />
+            <UploadCloud className={`h-8 w-8 ${isDragActive ? 'text-emerald-500 dark:text-emerald-400 animate-bounce' : 'text-stone-400'}`} />
           )}
         </div>
         
         {file ? (
           <div className="space-y-1">
             <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Arquivo Selecionado com Sucesso</p>
-            <p className="text-lg font-medium text-slate-800 dark:text-white">{file.name}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{(file.size / 1024).toFixed(2)} KB • Clique novamente para trocar</p>
+            <p className="text-lg font-medium text-stone-800 dark:text-white">{file.name}</p>
+            <p className="text-xs text-stone-600 dark:text-slate-400">{(file.size / 1024).toFixed(2)} KB • Clique novamente para trocar</p>
           </div>
         ) : (
           <div className="space-y-1">
-            <p className="text-base font-medium text-slate-700 dark:text-slate-200">Arraste a Planilha do ERP para cá</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+            <p className="text-base font-medium text-stone-800 dark:text-slate-200">Arraste a Planilha do ERP para cá</p>
+            <p className="text-sm text-stone-600 dark:text-slate-400 max-w-sm mx-auto">
               Ou clique para selecionar. Formatos suportados: Excel (.xlsx, .xls) ou .CSV
             </p>
           </div>
@@ -205,7 +256,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
           disabled={!file || !competencia || isProcessing}
           className={`flex-1 py-4 px-6 rounded-md font-semibold text-lg flex items-center justify-center transition-all duration-300
             ${(!file || !competencia) 
-              ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-700' 
+              ? 'bg-stone-200 dark:bg-slate-800 text-stone-500 dark:text-slate-500 cursor-not-allowed border border-stone-300 dark:border-slate-700' 
               : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
             }
           `}
@@ -224,7 +275,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
           <button
             onClick={handleNovoProcessamento}
             disabled={isProcessing}
-            className="py-4 px-8 rounded-md font-semibold text-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-sm"
+            className="py-4 px-8 rounded-md font-semibold text-lg border border-stone-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-stone-700 dark:text-stone-200 hover:bg-stone-50 dark:hover:bg-slate-700 transition-all shadow-sm"
           >
             Novo Processamento
           </button>
@@ -247,11 +298,11 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
             
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-white dark:bg-slate-800/80 rounded-md p-4 border border-emerald-100 dark:border-slate-700 shadow-sm">
-                <span className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">Notas Fiscais Processadas</span>
-                <p className="text-3xl font-bold text-slate-800 dark:text-white mt-1">{resultado.totalNotas}</p>
+                <span className="text-stone-600 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">Notas Fiscais Processadas</span>
+                <p className="text-3xl font-bold text-stone-800 dark:text-white mt-1">{resultado.totalNotas}</p>
               </div>
               <div className="bg-white dark:bg-slate-800/80 rounded-md p-4 border border-emerald-100 dark:border-slate-700 shadow-sm">
-                <span className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">Novos Tomadores</span>
+                <span className="text-stone-600 dark:text-slate-400 text-xs uppercase tracking-wider font-semibold">Novos Tomadores</span>
                 <p className="text-3xl font-bold text-emerald-600 dark:text-amber-400 mt-1">+{resultado.novosClientes}</p>
               </div>
             </div>
@@ -289,7 +340,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
                 href="https://nfe.etransparencia.com.br/sp.caieiras/nfe/principal.aspx"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 inline-flex items-center justify-center bg-slate-800 dark:bg-slate-700 text-white font-bold px-8 py-3 rounded-md hover:bg-slate-900 dark:hover:bg-slate-600 transition-colors shadow-md"
+                className="flex-1 inline-flex items-center justify-center bg-stone-800 dark:bg-slate-700 text-white font-bold px-8 py-3 rounded-md hover:bg-stone-900 dark:hover:bg-slate-600 transition-colors shadow-md"
               >
                 <ExternalLink className="h-5 w-5 mr-2" />
                 VALIDAR ARQUIVO
@@ -301,42 +352,51 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
 
       {/* MODAL: Inteligência de Validação (Warnings) */}
       {showWarningsModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-amber-500/5">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-md shadow-2xl border border-stone-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-6 border-b border-stone-100 dark:border-slate-800 flex justify-between items-center bg-amber-500/5">
               <div className="flex items-center space-x-3">
                 <AlertTriangle className="h-6 w-6 text-amber-500" />
                 <h3 className="text-xl font-bold dark:text-white">Relatório de Campos em Branco</h3>
               </div>
-              <button onClick={() => setShowWarningsModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                <X className="h-5 w-5 dark:text-slate-400" />
+              <button onClick={() => setShowWarningsModal(false)} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full transition-colors">
+                <X className="h-5 w-5 dark:text-stone-400" />
               </button>
             </div>
             
             <div className="p-6 max-h-[60vh] overflow-y-auto">
               <div className="space-y-3">
                 {resultado.warnings.map((w, idx) => (
-                  <div key={idx} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                  <div key={idx} className="bg-stone-50 dark:bg-slate-800/50 p-4 rounded border border-stone-100 dark:border-slate-700 flex items-center justify-between group/w">
                     <div>
                       <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">RPS {w.rps}</span>
-                      <p className="text-slate-800 dark:text-slate-200 font-medium">Campo <span className="text-red-500 underline">{w.campo}</span> obrigatório.</p>
+                      <p className="text-stone-800 dark:text-stone-200 font-medium">Campo <span className="text-red-500 underline">{w.campo}</span> obrigatório.</p>
+                      <p className="text-[10px] text-stone-500">CNPJ: {w.cnpj}</p>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-400 block uppercase">Status</span>
-                      <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-bold px-2 py-1 rounded">REJEIÇÃO PROVÁVEL</span>
+                    <div className="flex items-center space-x-4">
+                      <button 
+                        onClick={() => handleOpenCorrection(w)}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-2 rounded transition-all opacity-0 group-hover/w:opacity-100"
+                      >
+                        CORRIGIR AGORA
+                      </button>
+                      <div className="text-right">
+                        <span className="text-[10px] text-stone-500 block uppercase">Status</span>
+                        <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-bold px-2 py-1 rounded">REJEIÇÃO PROVÁVEL</span>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="p-6 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 text-center">
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            <div className="p-6 bg-stone-50 dark:bg-slate-900/50 border-t border-stone-100 dark:border-slate-800 text-center">
+              <p className="text-sm text-stone-600 dark:text-slate-400 mb-4">
                 A prefeitura de Caieiras não aceita campos vazios. Por favor, ajuste os dados na sua planilha ERP antes do envio definitivo.
               </p>
               <button 
                 onClick={() => setShowWarningsModal(false)}
-                className="w-full bg-slate-800 dark:bg-white text-white dark:text-slate-900 font-bold py-3 rounded-md"
+                className="w-full bg-stone-800 dark:bg-white text-white dark:text-stone-900 font-bold py-3 rounded-md"
               >
                 ENTENDI, VOU CORRIGIR
               </button>
@@ -347,9 +407,9 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
 
       {/* MODAL: Banco de Tomadores (Supabase) */}
       {showTomadoresModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-5xl h-[85vh] rounded-md shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-8 duration-500">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-emerald-600">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-950/90 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-5xl h-[85vh] rounded-md shadow-2xl border border-stone-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-8 duration-500">
+            <div className="p-6 border-b border-stone-100 dark:border-slate-800 flex justify-between items-center bg-emerald-600">
               <div className="flex items-center space-x-3 text-white">
                 <Database className="h-6 w-6" />
                 <div>
@@ -362,15 +422,15 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
               </button>
             </div>
 
-            <div className="p-6 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+            <div className="p-6 bg-white dark:bg-slate-900 border-b border-stone-100 dark:border-slate-800">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
                 <input 
                   type="text"
                   placeholder="Buscar por Razão Social ou CNPJ..."
                   value={searchTomador}
                   onChange={(e) => setSearchTomador(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md outline-none focus:ring-2 focus:ring-emerald-500 text-slate-700 dark:text-white"
+                  className="w-full pl-10 pr-4 py-3 bg-stone-50 dark:bg-slate-950 border border-stone-200 dark:border-stone-700 rounded-md outline-none focus:ring-2 focus:ring-emerald-500 text-stone-700 dark:text-white"
                 />
               </div>
             </div>
@@ -379,25 +439,25 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
               {isLoadingTomadores ? (
                 <div className="h-full flex flex-col items-center justify-center space-y-4">
                   <Loader2 className="h-12 w-12 text-emerald-600 animate-spin" />
-                  <p className="text-slate-500">Consultando Supabase...</p>
+                  <p className="text-stone-500">Consultando Supabase...</p>
                 </div>
               ) : (
                 <table className="w-full text-left border-collapse">
-                  <thead className="sticky top-0 bg-slate-50 dark:bg-slate-800/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700">
+                  <thead className="sticky top-0 bg-stone-50 dark:bg-slate-800/80 backdrop-blur-md border-b border-stone-200 dark:border-slate-700">
                     <tr>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">CNPJ</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Razão Social</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Localidade</th>
-                      <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Bairro</th>
+                      <th className="px-6 py-4 text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">CNPJ</th>
+                      <th className="px-6 py-4 text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Razão Social</th>
+                      <th className="px-6 py-4 text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Localidade</th>
+                      <th className="px-6 py-4 text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Bairro</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-stone-100 dark:divide-slate-800">
                     {filteredTomadores.map((t, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                        <td className="px-6 py-4 text-sm font-mono text-slate-600 dark:text-slate-300 font-bold group-hover:text-emerald-600">{t.cnpj}</td>
-                        <td className="px-6 py-4 text-sm text-slate-800 dark:text-slate-200 font-medium">{t.razao_social}</td>
-                        <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">{t.municipio} - {t.uf}</td>
-                        <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 italic">{t.bairro || 'Não informado'}</td>
+                      <tr key={idx} className="hover:bg-stone-50 dark:hover:bg-slate-800/50 transition-colors group">
+                        <td className="px-6 py-4 text-sm font-mono text-stone-600 dark:text-stone-300 font-bold group-hover:text-emerald-600">{t.cnpj}</td>
+                        <td className="px-6 py-4 text-sm text-stone-800 dark:text-stone-200 font-medium">{t.razao_social}</td>
+                        <td className="px-6 py-4 text-sm text-stone-600 dark:text-stone-400">{t.municipio} - {t.uf}</td>
+                        <td className="px-6 py-4 text-sm text-stone-600 dark:text-stone-400 italic">{t.bairro || 'Não informado'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -405,13 +465,53 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
               )}
             </div>
 
-            <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-              <span className="text-sm text-slate-500">{filteredTomadores.length} registros encontrados</span>
+            <div className="p-4 bg-stone-50 dark:bg-slate-900/50 border-t border-stone-100 dark:border-slate-800 flex justify-between items-center">
+              <span className="text-sm text-stone-600">{filteredTomadores.length} registros encontrados</span>
               <button 
                 onClick={closeTomadores}
                 className="bg-emerald-600 text-white px-6 py-2 rounded-md font-bold text-sm"
               >
                 FECHAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Correção Rápida */}
+      {showCorrectionModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-md shadow-2xl border border-stone-200 dark:border-slate-800 overflow-hidden">
+            <div className="p-6 border-b border-stone-100 dark:border-slate-800 flex justify-between items-center bg-emerald-600 text-white">
+              <div className="flex items-center space-x-2">
+                <Info className="h-5 w-5" />
+                <h3 className="font-bold">Correção de Tomador</h3>
+              </div>
+              <button onClick={() => setShowCorrectionModal(false)}><X className="h-5 w-5" /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-stone-600 uppercase">Ajustar o campo:</label>
+                <p className="text-stone-800 dark:text-white font-medium">{currentWarning?.campo}</p>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-stone-600 uppercase">Novo Valor:</label>
+                <input 
+                  type="text"
+                  value={correctionValue}
+                  onChange={(e) => setCorrectionValue(e.target.value)}
+                  className="w-full mt-1 bg-stone-50 dark:bg-slate-950 border border-stone-300 dark:border-stone-700 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 text-stone-800 dark:text-white"
+                  placeholder={`Digite o ${currentWarning?.campo}...`}
+                  autoFocus
+                />
+              </div>
+              <button 
+                onClick={handleSaveCorrection}
+                disabled={isSavingCorrection || !correctionValue}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-md flex items-center justify-center"
+              >
+                {isSavingCorrection ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
+                SALVAR E REPROCESSAR
               </button>
             </div>
           </div>

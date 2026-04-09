@@ -6,6 +6,17 @@
   --color-sastre-teal: #0f766e;
   --color-sastre-dark: #134e4a;
   --color-sastre-gold: #f59e0b;
+  
+  /* Stone Palette Extensions */
+  --color-stone-50: #fafaf9;
+  --color-stone-100: #f5f5f4;
+  --color-stone-200: #e7e5e4;
+  --color-stone-300: #d6d3d1;
+  --color-stone-500: #78716c;
+  --color-stone-600: #57534e;
+  --color-stone-700: #44403c;
+  --color-stone-800: #292524;
+  --color-stone-900: #1c1917;
 }
 
 body {
