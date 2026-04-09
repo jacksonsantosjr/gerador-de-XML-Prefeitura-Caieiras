@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.tomador import Tomador
@@ -15,14 +15,10 @@ def list_tomadores(db: Session = Depends(get_db)):
 
 @router.patch("/tomadores/{cnpj}")
 def update_tomador(cnpj: str, obj_in: TomadorUpdate, db: Session = Depends(get_db)):
-    """Atualiza dados de um tomador pelo CNPJ (Upsert se necessário, mas aqui focado em correção)."""
+    """Atualiza dados de um tomador pelo CNPJ."""
     tomador = db.query(Tomador).filter(Tomador.cnpj == cnpj).first()
     if not tomador:
-        # Se não existir, podemos criar ou retornar erro. 
-        # No fluxo de correção, o tomador deveria existir (foi enrich ou importado).
-        # Para garantir, vamos fazer um Upsert se for necessário no futuro, 
-        # mas por hora, vamos apenas atualizar.
-        return {"error": "Tomador não encontrado para atualização."}
+        raise HTTPException(status_code=404, detail="Tomador não encontrado no banco de dados para ser atualizado.")
     
     update_data = obj_in.model_dump(exclude_unset=True)
     for field in update_data:

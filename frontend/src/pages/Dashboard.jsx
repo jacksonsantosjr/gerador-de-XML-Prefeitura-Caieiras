@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { UploadCloud, FileType, CheckCircle, AlertCircle, Loader2, Download, ExternalLink, Search, X, AlertTriangle, Database, Info } from 'lucide-react';
+import { UploadCloud, FileType, CheckCircle, AlertCircle, Loader2, Download, ExternalLink, Search, X, AlertTriangle, Database, Info, Edit2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
 export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
@@ -22,6 +22,10 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
   const [correctionValue, setCorrectionValue] = useState('');
   const [isSavingCorrection, setIsSavingCorrection] = useState(false);
   const [genericModalMsg, setGenericModalMsg] = useState(null);
+
+  // Edição Direta de Tomador
+  const [editingTomador, setEditingTomador] = useState(null);
+  const [isSavingTomadorDatabase, setIsSavingTomadorDatabase] = useState(false);
 
   // Sincroniza com prop do App.jsx (quando clica no Header)
   useEffect(() => {
@@ -182,6 +186,42 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
     t.razao_social?.toLowerCase().includes(searchTomador.toLowerCase()) ||
     t.cnpj?.includes(searchTomador)
   );
+
+  const handleSaveTomadorDatabase = async () => {
+    if (!editingTomador || !editingTomador.cnpj) return;
+    setIsSavingTomadorDatabase(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/tomadores/${editingTomador.cnpj}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          razao_social: editingTomador.razao_social,
+          tipo_logradouro: editingTomador.tipo_logradouro,
+          logradouro: editingTomador.logradouro,
+          numero: editingTomador.numero,
+          complemento: editingTomador.complemento,
+          bairro: editingTomador.bairro,
+          municipio: editingTomador.municipio,
+          uf: editingTomador.uf,
+          cep: editingTomador.cep,
+        })
+      });
+
+      if (response.ok) {
+        setEditingTomador(null);
+        // Recarrega a tabela de tomadores para refletir a mudança
+        handleOpenTomadores();
+      } else {
+        const errData = await response.json().catch(() => null);
+        setGenericModalMsg(errData?.detail || errData?.error || "Erro ao atualizar os dados do Tomador no banco de dados.");
+      }
+    } catch (err) {
+      setGenericModalMsg("Erro de conexão ao salvar tomador.");
+    } finally {
+      setIsSavingTomadorDatabase(false);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out">
@@ -379,7 +419,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
                     <div className="flex items-center space-x-4">
                       <button 
                         onClick={() => handleOpenCorrection(w)}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-2 rounded transition-all opacity-0 group-hover/w:opacity-100"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-3 py-2 rounded transition-all opacity-100"
                       >
                         CORRIGIR AGORA
                       </button>
@@ -397,12 +437,20 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
               <p className="text-sm text-stone-600 dark:text-slate-400 mb-4">
                 A prefeitura de Caieiras não aceita campos vazios. Por favor, ajuste os dados na sua planilha ERP antes do envio definitivo.
               </p>
-              <button 
-                onClick={() => setShowWarningsModal(false)}
-                className="w-full bg-stone-800 dark:bg-white text-white dark:text-stone-900 font-bold py-3 rounded-md"
-              >
-                ENTENDI, VOU CORRIGIR
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                <button 
+                  onClick={() => setShowWarningsModal(false)}
+                  className="w-full bg-stone-300 dark:bg-slate-800 hover:bg-stone-400 dark:hover:bg-slate-700 text-stone-800 dark:text-white font-bold py-3 rounded-md transition-colors"
+                >
+                  CANCELAR
+                </button>
+                <button 
+                  onClick={() => handleOpenCorrection(resultado.warnings[0])}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-md transition-colors"
+                >
+                  CORRIGIR AGORA
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -452,6 +500,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
                       <th className="px-6 py-4 text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Razão Social</th>
                       <th className="px-6 py-4 text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Localidade</th>
                       <th className="px-6 py-4 text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider">Bairro</th>
+                      <th className="px-6 py-4 text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100 dark:divide-slate-800">
@@ -461,6 +510,15 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
                         <td className="px-6 py-4 text-sm text-stone-800 dark:text-stone-200 font-medium">{t.razao_social}</td>
                         <td className="px-6 py-4 text-sm text-stone-600 dark:text-stone-400">{t.municipio} - {t.uf}</td>
                         <td className="px-6 py-4 text-sm text-stone-600 dark:text-stone-400 italic">{t.bairro || 'Não informado'}</td>
+                        <td className="px-6 py-4 text-right">
+                          <button 
+                            onClick={() => setEditingTomador({...t})} 
+                            className="p-2 text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-full transition-colors"
+                            title="Editar Registro"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -515,6 +573,144 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
               >
                 {isSavingCorrection ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
                 SALVAR E REPROCESSAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Edição Completa de Tomador */}
+      {editingTomador && (
+        <div className="fixed inset-0 z-[115] flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl max-h-[90vh] rounded-md shadow-2xl border border-stone-200 dark:border-slate-800 flex flex-col overflow-hidden">
+            <div className="p-6 border-b border-stone-100 dark:border-slate-800 flex justify-between items-center bg-emerald-600 text-white">
+              <div className="flex items-center space-x-2">
+                <Edit2 className="h-5 w-5" />
+                <h3 className="font-bold">Atualizar Dados do ERP</h3>
+              </div>
+              <button onClick={() => setEditingTomador(null)} className="hover:text-emerald-200 transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto space-y-4">
+              <div className="bg-stone-50 dark:bg-slate-800 rounded-md p-4 border border-stone-100 dark:border-slate-700">
+                <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">CNPJ (Imutável)</p>
+                <p className="font-mono text-stone-800 dark:text-stone-200 font-semibold">{editingTomador.cnpj}</p>
+              </div>
+              
+              <div>
+                <label className="text-xs font-bold text-stone-600 dark:text-slate-400 uppercase">Razão Social</label>
+                <input 
+                  type="text"
+                  value={editingTomador.razao_social || ''}
+                  onChange={(e) => setEditingTomador({...editingTomador, razao_social: e.target.value})}
+                  className="w-full mt-1 bg-white dark:bg-slate-950 border border-stone-300 dark:border-stone-700 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 text-stone-800 dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12 sm:col-span-4">
+                  <label className="text-xs font-bold text-stone-600 dark:text-slate-400 uppercase">Tipo (Rua, Av...)</label>
+                  <input 
+                    type="text"
+                    value={editingTomador.tipo_logradouro || ''}
+                    onChange={(e) => setEditingTomador({...editingTomador, tipo_logradouro: e.target.value})}
+                    className="w-full mt-1 bg-white dark:bg-slate-950 border border-stone-300 dark:border-stone-700 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 text-stone-800 dark:text-white uppercase"
+                  />
+                </div>
+                <div className="col-span-12 sm:col-span-8">
+                  <label className="text-xs font-bold text-stone-600 dark:text-slate-400 uppercase">Logradouro</label>
+                  <input 
+                    type="text"
+                    value={editingTomador.logradouro || ''}
+                    onChange={(e) => setEditingTomador({...editingTomador, logradouro: e.target.value})}
+                    className="w-full mt-1 bg-white dark:bg-slate-950 border border-stone-300 dark:border-stone-700 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 text-stone-800 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12 sm:col-span-4">
+                  <label className="text-xs font-bold text-stone-600 dark:text-slate-400 uppercase">Número</label>
+                  <input 
+                    type="text"
+                    value={editingTomador.numero || ''}
+                    onChange={(e) => setEditingTomador({...editingTomador, numero: e.target.value})}
+                    className="w-full mt-1 bg-white dark:bg-slate-950 border border-stone-300 dark:border-stone-700 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 text-stone-800 dark:text-white"
+                  />
+                </div>
+                <div className="col-span-12 sm:col-span-8">
+                  <label className="text-xs font-bold text-stone-600 dark:text-slate-400 uppercase">Complemento</label>
+                  <input 
+                    type="text"
+                    value={editingTomador.complemento || ''}
+                    onChange={(e) => setEditingTomador({...editingTomador, complemento: e.target.value})}
+                    className="w-full mt-1 bg-white dark:bg-slate-950 border border-stone-300 dark:border-stone-700 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 text-stone-800 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12 sm:col-span-6">
+                  <label className="text-xs font-bold text-stone-600 dark:text-slate-400 uppercase">Bairro</label>
+                  <input 
+                    type="text"
+                    value={editingTomador.bairro || ''}
+                    onChange={(e) => setEditingTomador({...editingTomador, bairro: e.target.value})}
+                    className="w-full mt-1 bg-white dark:bg-slate-950 border border-stone-300 dark:border-stone-700 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 text-stone-800 dark:text-white"
+                  />
+                </div>
+                <div className="col-span-12 sm:col-span-6">
+                  <label className="text-xs font-bold text-stone-600 dark:text-slate-400 uppercase">CEP</label>
+                  <input 
+                    type="text"
+                    value={editingTomador.cep || ''}
+                    onChange={(e) => setEditingTomador({...editingTomador, cep: e.target.value})}
+                    className="w-full mt-1 bg-white dark:bg-slate-950 border border-stone-300 dark:border-stone-700 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 text-stone-800 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12 sm:col-span-9">
+                  <label className="text-xs font-bold text-stone-600 dark:text-slate-400 uppercase">Município</label>
+                  <input 
+                    type="text"
+                    value={editingTomador.municipio || ''}
+                    onChange={(e) => setEditingTomador({...editingTomador, municipio: e.target.value})}
+                    className="w-full mt-1 bg-white dark:bg-slate-950 border border-stone-300 dark:border-stone-700 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 text-stone-800 dark:text-white"
+                  />
+                </div>
+                <div className="col-span-12 sm:col-span-3">
+                  <label className="text-xs font-bold text-stone-600 dark:text-slate-400 uppercase">UF</label>
+                  <input 
+                    type="text"
+                    value={editingTomador.uf || ''}
+                    onChange={(e) => setEditingTomador({...editingTomador, uf: e.target.value})}
+                    className="w-full mt-1 bg-white dark:bg-slate-950 border border-stone-300 dark:border-stone-700 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 text-stone-800 dark:text-white uppercase"
+                    maxLength={2}
+                  />
+                </div>
+              </div>
+
+            </div>
+            
+            <div className="p-4 border-t border-stone-100 dark:border-slate-800 bg-stone-50 dark:bg-slate-900/50 flex justify-end space-x-3">
+              <button 
+                onClick={() => setEditingTomador(null)}
+                disabled={isSavingTomadorDatabase}
+                className="px-6 py-2 rounded-md font-bold text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-slate-800 transition-colors"
+              >
+                CANCELAR
+              </button>
+              <button 
+                onClick={handleSaveTomadorDatabase}
+                disabled={isSavingTomadorDatabase}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-2 rounded-md font-bold flex items-center shadow-sm transition-colors"
+              >
+                {isSavingTomadorDatabase ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
+                SALVAR NO BANCO
               </button>
             </div>
           </div>
