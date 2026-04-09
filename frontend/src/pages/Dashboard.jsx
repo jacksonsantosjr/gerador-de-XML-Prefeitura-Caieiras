@@ -15,6 +15,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
   const [tomadores, setTomadores] = useState([]);
   const [isLoadingTomadores, setIsLoadingTomadores] = useState(false);
   const [searchTomador, setSearchTomador] = useState('');
+  const [isReprocessing, setIsReprocessing] = useState(false);
 
   // Mensagens Genéricas
   const [genericModalMsg, setGenericModalMsg] = useState(null);
@@ -91,6 +92,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
         totalNotas: data.stats.total_notas,
         novosClientes: data.stats.nov_clientes || data.stats.novos_clientes,
         warnings: data.warnings || [],
+        rows: data.rows, // Dados enriquecidos para edição rápida
         downloadUrl,
         filename: data.filename
       });
@@ -144,6 +146,81 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
     handleOpenTomadores();
   };
 
+  const handleManualEdit = (rps, campo, valor) => {
+    const updatedRows = resultado.rows.map(row => {
+      if (String(row.NumRps) === String(rps)) {
+        // Mapeamento de campos amigáveis para as chaves internas do parser do Caieiras
+        const fieldMap = {
+          "Razão Social": "RazSocTom",
+          "Logradouro": "LogTom",
+          "Tipo Logradouro": "TipoLogtom",
+          "Número": "NumEndTom",
+          "Bairro": "BairroTom",
+          "Município": "MunTom",
+          "UF": "SiglaUFTom",
+          "CEP": "CepTom"
+        };
+        const realField = fieldMap[campo] || campo;
+        return { ...row, [realField]: valor };
+      }
+      return row;
+    });
+
+    setResultado({ ...resultado, rows: updatedRows });
+  };
+
+  const handleReprocessar = async () => {
+    setIsReprocessing(true);
+    setErro(null);
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/reprocessar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rows: resultado.rows,
+          competencia: competencia
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Erro no reprocessamento');
+      }
+
+      const data = await response.json();
+      
+      // Atualiza o resultado com o novo XML
+      const byteCharacters = atob(data.xml_base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/xml' });
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      setResultado({
+        ...resultado,
+        warnings: data.warnings || [],
+        rows: data.rows,
+        downloadUrl,
+        filename: data.filename
+      });
+      
+      // Se não houver mais warnings, fecha o modal automaticamente
+      if (!data.warnings || data.warnings.length === 0) {
+        setShowWarningsModal(false);
+      }
+
+    } catch (err) {
+      setErro(`Erro no reprocessamento: ${err.message}`);
+    } finally {
+      setIsReprocessing(false);
+    }
+  };
+
   const filteredTomadores = tomadores.filter(t => 
     t.razao_social?.toLowerCase().includes(searchTomador.toLowerCase()) ||
     t.cnpj?.includes(searchTomador)
@@ -171,8 +248,49 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
       });
 
       if (response.ok) {
-        setEditingTomador(null);
-        // Recarrega a tabela de tomadores para refletir a mudança
+        // --- INÍCIO DA PONTE DE SINCRONIZAÇÃO ---
+        // Se houver um lote sendo processado, atualiza os dados dele em memória
+        if (resultado && resultado.rows) {
+          const cleanEditingCnpj = editingTomador.cnpj.replace(/[^0-9]/g, '');
+          
+          const updatedRows = resultado.rows.map(row => {
+            // Limpa o CNPJ da linha para comparação segura
+            const cleanRowCnpj = String(row.CPFCNPJTomador || row.CNPJ || '').replace(/[^0-9]/g, '');
+            
+            if (cleanRowCnpj === cleanEditingCnpj) {
+              return {
+                ...row,
+                RazSocTom: editingTomador.razao_social,
+                TipoLogtom: editingTomador.tipo_logradouro,
+                LogTom: editingTomador.logradouro,
+                NumEndTom: editingTomador.numero,
+                BairroTom: editingTomador.bairro,
+                MunTom: editingTomador.municipio,
+                SiglaUFTom: editingTomador.uf,
+                CepTom: editingTomador.cep,
+                ComplementoTom: editingTomador.complemento
+              };
+            }
+            return row;
+          });
+
+          // Atualiza o estado e fecha o modal de banco
+          setResultado(prev => ({ ...prev, rows: updatedRows }));
+          setEditingTomador(null);
+          closeTomadores(); // Fecha o modal de banco para voltar à tela de resultados
+
+          // Dispara o reprocessamento imediato com os novos dados
+          // Usamos um pequeno timeout para garantir que o estado do React foi processado
+          setTimeout(() => {
+            handleReprocessar();
+          }, 100);
+
+        } else {
+          setEditingTomador(null);
+        }
+        // --- FIM DA PONTE ---
+
+        // Recarrega a tabela de tomadores para refletir a mudança permanentemente
         handleOpenTomadores();
       } else {
         const errData = await response.json().catch(() => null);
@@ -372,17 +490,23 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
             <div className="p-6 max-h-[60vh] overflow-y-auto">
               <div className="space-y-3">
                 {resultado.warnings.map((w, idx) => (
-                  <div key={idx} className="bg-stone-50 dark:bg-slate-800/50 p-4 rounded border border-stone-100 dark:border-slate-700 flex items-center justify-between group/w">
-                    <div>
-                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">RPS {w.rps}</span>
-                      <p className="text-stone-800 dark:text-stone-200 font-medium">Campo <span className="text-red-500 underline">{w.campo}</span> obrigatório.</p>
-                      <p className="text-[10px] text-stone-500">CNPJ: <strong className="text-stone-700 dark:text-stone-300">{w.cnpj || 'EM BRANCO / NÃO INFORMADO'}</strong></p>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <span className="text-[10px] text-stone-500 block uppercase">Status</span>
-                        <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-bold px-2 py-1 rounded">REJEIÇÃO PROVÁVEL</span>
+                  <div key={idx} className="bg-stone-50 dark:bg-slate-800/50 p-4 rounded border border-stone-100 dark:border-slate-700 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">RPS {w.rps}</span>
+                        <p className="text-stone-800 dark:text-stone-200 font-medium">Campo <span className="text-red-500 underline">{w.campo}</span> obrigatório.</p>
                       </div>
+                      <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-bold px-2 py-1 rounded">REJEIÇÃO PROVÁVEL</span>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-[10px] font-bold text-stone-500 dark:text-slate-500 uppercase mb-1">Correção Direta (Lote Atual):</label>
+                      <input 
+                        type="text"
+                        placeholder={`Preencher ${w.campo}...`}
+                        className="w-full bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-700 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                        onChange={(e) => handleManualEdit(w.rps, w.campo, e.target.value)}
+                      />
                     </div>
                   </div>
                 ))}
@@ -395,17 +519,33 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
               </p>
               <div className="flex flex-col sm:flex-row gap-3 mt-4">
                 <button 
-                  onClick={() => handleOpenCorrection(resultado.warnings[0])}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-md transition-colors"
+                  onClick={handleReprocessar}
+                  disabled={isReprocessing}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-md transition-colors flex items-center justify-center"
                 >
-                  CORRIGIR AGORA
+                  {isReprocessing ? (
+                    <>
+                      <Loader2 className="animate-spin h-5 w-5 mr-3" />
+                      REPROCESSANDO...
+                    </>
+                  ) : (
+                    <>SALVAR E REPROCESSAR AGORA</>
+                  )}
                 </button>
-                <button 
-                  onClick={() => setShowWarningsModal(false)}
-                  className="w-full bg-stone-300 dark:bg-slate-800 hover:bg-stone-400 dark:hover:bg-slate-700 text-stone-800 dark:text-white font-bold py-3 rounded-md transition-colors"
-                >
-                  CANCELAR
-                </button>
+                <div className="flex gap-2 w-full">
+                  <button 
+                    onClick={() => handleOpenCorrection(resultado.warnings[0])}
+                    className="flex-1 bg-stone-300 dark:bg-slate-800 hover:bg-stone-400 dark:hover:bg-slate-700 text-stone-800 dark:text-white font-bold py-2 rounded-md transition-colors text-xs"
+                  >
+                    EDITAR NO BANCO (MASTER)
+                  </button>
+                  <button 
+                    onClick={() => setShowWarningsModal(false)}
+                    className="flex-1 bg-stone-100 dark:bg-slate-900 border border-stone-200 dark:border-slate-800 text-stone-600 dark:text-slate-400 font-bold py-2 rounded-md transition-colors text-xs"
+                  >
+                    FECHAR
+                  </button>
+                </div>
               </div>
             </div>
           </div>

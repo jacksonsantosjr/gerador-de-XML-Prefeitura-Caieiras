@@ -8,3 +8,5 @@ backend/.env
 *.png
 *.db
 *.sqlite
+.agent/
+.gemini/

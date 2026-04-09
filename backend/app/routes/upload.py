@@ -72,6 +72,44 @@ async def process_file(
             "novos_clientes": stats["tomadores_novos_brasilapi"]
         },
         "warnings": warnings,
+        "rows": enriched_rows,  # Retorna os dados para edição no frontend
         "xml_base64": xml_b64,
         "filename": f"RPS_CAIEIRAS_{competencia}.xml"
+    }
+
+@router.post("/reprocessar")
+async def reprocess_data(
+    payload: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Recebe os dados editados do frontend e gera um novo XML na hora.
+    """
+    rows = payload.get("rows")
+    competencia = payload.get("competencia")
+
+    if not rows:
+        raise HTTPException(status_code=400, detail="Dados de 'rows' não fornecidos.")
+
+    # 1. Recalcular impostos caso o usuário tenha mudado valores (segurança)
+    # No momento as edições são focadas em tomadores, mas o calculator garante integridade.
+    rows_calculated = []
+    for row in rows:
+        rows_calculated.append(ValueCalculator.process_taxes(row))
+
+    # 2. Gerar XML LXML
+    try:
+        xml_bytes, warnings = XmlGeneratorService.gerar_lote_xml(rows_calculated, data_competencia=competencia)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro regerando estrutura XML: {str(e)}")
+
+    import base64
+    xml_b64 = base64.b64encode(xml_bytes).decode('utf-8')
+
+    return {
+        "status": "success",
+        "warnings": warnings,
+        "rows": rows_calculated,
+        "xml_base64": xml_b64,
+        "filename": f"RPS_CAIEIRAS_{competencia}_CORRIGIDO.xml"
     }
