@@ -26,6 +26,11 @@ function App() {
     }, 800); // Matches the 0.8s animation duration
   };
 
+  const handleLogout = () => {
+    setIsHeroExiting(false);
+    setShowHero(true);
+  };
+
   return (
     <>
       {showHero && <Hero onAccess={handleAccess} isExiting={isHeroExiting} />}
@@ -35,6 +40,7 @@ function App() {
             toggleTheme={toggleTheme} 
             isDarkMode={isDarkMode} 
             onOpenTomadores={() => setShowTomadores(true)} 
+            onLogout={handleLogout}
           />
           <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
             <Dashboard 

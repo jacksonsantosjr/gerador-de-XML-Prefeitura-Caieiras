@@ -1,7 +1,7 @@
 import React from 'react';
-import { Database, FileCode2, Sun, Moon } from 'lucide-react';
+import { Database, FileCode2, Sun, Moon, LogOut } from 'lucide-react';
 
-export default function Header({ toggleTheme, isDarkMode, onOpenTomadores }) {
+export default function Header({ toggleTheme, isDarkMode, onOpenTomadores, onLogout }) {
   return (
     <header className="bg-white dark:bg-slate-900 border-b border-stone-200 dark:border-slate-800 shadow-sm sticky top-0 z-50 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -27,10 +27,19 @@ export default function Header({ toggleTheme, isDarkMode, onOpenTomadores }) {
               <span className="hidden sm:inline">Tomadores</span>
             </button>
             <div className="pl-4 border-l border-stone-200 dark:border-slate-700 ml-2">
-               <button onClick={toggleTheme} className="p-2 rounded-md text-stone-500 dark:text-slate-400 hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors">
-                 {isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-               </button>
-            </div>
+                <button onClick={toggleTheme} className="p-2 rounded-md text-stone-500 dark:text-slate-400 hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors" title="Alternar tema">
+                  {isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+                </button>
+             </div>
+             <div className="pl-4 ml-2 border-l border-stone-200 dark:border-slate-700">
+                <button 
+                  onClick={onLogout} 
+                  className="p-2 rounded-md text-stone-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors" 
+                  title="Sair para a Hero Section"
+                >
+                  <LogOut className="h-5 w-5" />
+                </button>
+             </div>
           </nav>
         </div>
       </div>
