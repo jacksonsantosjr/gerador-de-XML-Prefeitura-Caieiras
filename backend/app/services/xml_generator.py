@@ -98,11 +98,7 @@ class XmlGeneratorService:
             num_cnpj = "".join(filter(str.isdigit, raw_cnpj))
             cnpj_final = num_cnpj if num_cnpj else raw_cnpj
             
-            # DEBUG: Rastrear exatamente o que está chegando do enrichment
-            import logging
-            _logger = logging.getLogger(__name__)
-            _logger.warning(f"[DEBUG-XML] RPS={num_rps} | raw CpfCnpTom='{nota.get('CpfCnpTom')}' | raw_cnpj='{raw_cnpj}' | num_cnpj='{num_cnpj}' | cnpj_final='{cnpj_final}'")
-            
+
             # Validação de campos obrigatórios (Inteligência contra campos brancos)
             campos_obrigatorios = {
                 "RazSocTom": "Razão Social",
