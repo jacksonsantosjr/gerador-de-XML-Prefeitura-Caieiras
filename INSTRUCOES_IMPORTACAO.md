@@ -1,32 +1,31 @@
 # 📋 Instruções para Carga de Dados (Amanhã na Empresa)
 
-Este guia explica como sincronizar os **526 tomadores** com o Supabase oficial.
+Este guia explica como sincronizar os **526 tomadores** com o Supabase oficial e como eliminar de vez a dependência de planilhas.
 
-## 🚀 Passo a Passo
+## 🛡️ Segurança Total (Não quebra o deploy!)
+Fique tranquilo: o arquivo `.gitignore` do projeto já está configurado para **bloquear** planilhas (`*.xlsm`, `*.xlsx`). 
+*   Isso significa que, mesmo que você coloque a planilha na pasta do projeto, ela **NUNCA** será enviada para o GitHub ou Hugging Face.
+*   O deploy continuará funcionando perfeitamente e o Space ficará "limpinho".
+
+## 🚀 Passo a Passo para Independência Total
 
 ### 1. Sincronize o código
-Ao chegar na máquina da empresa, abra o terminal na pasta do projeto e rode:
+Ao chegar na máquina da empresa, rode no terminal:
 ```bash
 git pull origin main
 ```
-Isso trará as correções de conexão e o script atualizado que acabamos de fazer.
 
-### 2. Prepare a Planilha
-Coloque o arquivo `TEMPLATE MODELO ENVIO DE RPS EM LOTE - PREF. CAIEIRAS.xlsm` **dentro da pasta raiz do projeto** (onde fica o arquivo `.gitignore`).
-
-### 3. Execute a Importação
-Ainda no terminal, rode o comando:
+### 2. Carga Única no Banco
+Coloque a planilha na raiz do projeto e rode:
 ```bash
 python backend/scripts/importar_tomadores.py
 ```
+Esse comando vai ler a planilha e "empurrar" todos os 526 tomadores para dentro do Supabase na nuvem.
 
-### 4. Verifique o Resultado
-*   O terminal deve exibir: `Importacao finalizada com sucesso! - Novos clientes: 441` (aproximadamente).
-*   Abra o site no Hugging Face: os 526 registros aparecerão lá instantaneamente.
+### 3. Fim da Dependência
+Assim que o script terminar:
+1.  **Delete a planilha** da pasta do projeto.
+2.  Pronto! Agora o Supabase é o dono de tudo. O site em casa, no celular ou no Hugging Face mostrará os 526 registros sem precisar da planilha nunca mais.
 
 ---
-
-## 🔒 Segurança de Banco (Lembrete)
-O site agora usa a `DATABASE_URL` secreta que configuramos. Se por algum motivo o banco da empresa ainda estiver apontando para um arquivo local (`.db`), o script que você rodará acima vai garantir que tudo seja enviado para o **PostgreSQL (Supabase)** correto.
-
-**Boa noite e bom descanso! Até amanhã.**
+**Boa noite e bom descanso!**
