@@ -255,7 +255,8 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
           
           const updatedRows = resultado.rows.map(row => {
             // Limpa o CNPJ da linha para comparação segura
-            const cleanRowCnpj = String(row.CPFCNPJTomador || row.CNPJ || '').replace(/[^0-9]/g, '');
+            // O parser do Caieiras usa a chave 'CpfCnpTom'
+            const cleanRowCnpj = String(row.CpfCnpTom || row.CPFCNPJTomador || row.CNPJ || '').replace(/[^0-9]/g, '');
             
             if (cleanRowCnpj === cleanEditingCnpj) {
               return {
@@ -264,7 +265,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
                 TipoLogtom: editingTomador.tipo_logradouro,
                 LogTom: editingTomador.logradouro,
                 NumEndTom: editingTomador.numero,
-                BairroTom: editingTomador.bairro,
+                BairroTom: (editingTomador.bairro && String(editingTomador.bairro).toLowerCase() !== 'nan') ? editingTomador.bairro : '',
                 MunTom: editingTomador.municipio,
                 SiglaUFTom: editingTomador.uf,
                 CepTom: editingTomador.cep,
@@ -494,6 +495,14 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase">RPS {w.rps}</span>
+                        <div className="mb-2">
+                          <p className="text-[10px] text-stone-500 font-bold uppercase tracking-tight">
+                            Tomador: <span className="text-stone-800 dark:text-stone-200">{w.razao_social}</span>
+                          </p>
+                          <p className="text-[10px] text-stone-500 font-bold uppercase tracking-tight">
+                            CNPJ: <span className="text-stone-800 dark:text-stone-200">{w.cnpj}</span>
+                          </p>
+                        </div>
                         <p className="text-stone-800 dark:text-stone-200 font-medium">Campo <span className="text-red-500 underline">{w.campo}</span> obrigatório.</p>
                       </div>
                       <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-bold px-2 py-1 rounded">REJEIÇÃO PROVÁVEL</span>

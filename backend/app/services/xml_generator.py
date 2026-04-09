@@ -115,6 +115,7 @@ class XmlGeneratorService:
                     warnings.append({
                         "rps": num_rps,
                         "cnpj": cnpj_final,
+                        "razao_social": str(nota.get("RazSocTom", "Não Informado")),
                         "campo": label,
                         "field": field,
                         "valor_atual": val or "Vazio"
