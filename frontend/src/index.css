@@ -62,7 +62,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to right, rgba(28, 25, 23, 1) 0%, rgba(28, 25, 23, 0.9) 25%, rgba(28, 25, 23, 0.45) 50%, rgba(28, 25, 23, 0) 100%);
+  background: linear-gradient(to right, rgba(28, 25, 23, 0.8) 0%, rgba(28, 25, 23, 0.7) 25%, rgba(28, 25, 23, 0.35) 55%, rgba(28, 25, 23, 0) 100%);
   z-index: 1;
 }
 
