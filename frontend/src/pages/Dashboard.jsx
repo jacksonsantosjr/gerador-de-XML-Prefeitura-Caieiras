@@ -290,13 +290,6 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
           setResultado(prev => ({ ...prev, rows: updatedRows }));
           setEditingTomador(null);
           closeTomadores(); // Fecha o modal de banco para voltar à tela de resultados
-
-          // Dispara o reprocessamento imediato com os novos dados
-          // Usamos um pequeno timeout para garantir que o estado do React foi processado
-          setTimeout(() => {
-            handleReprocessar();
-          }, 100);
-
         } else {
           setEditingTomador(null);
         }
