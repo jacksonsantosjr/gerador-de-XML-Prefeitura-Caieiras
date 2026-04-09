@@ -14,13 +14,19 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-EXCEL_PATH = r"C:\Users\jackson.junior\Downloads\TEMPLATE MODELO ENVIO DE RPS EM LOTE - PREF. CAIEIRAS.xlsm"
+# Tenta encontrar o arquivo na pasta atual do projeto primeiro
+import_filename = "TEMPLATE MODELO ENVIO DE RPS EM LOTE - PREF. CAIEIRAS.xlsm"
+local_path = os.path.join(os.path.dirname(__file__), '..', '..', import_filename)
+fallback_path = r"C:\Users\jackson.junior\Downloads\TEMPLATE MODELO ENVIO DE RPS EM LOTE - PREF. CAIEIRAS.xlsm"
+
+EXCEL_PATH = local_path if os.path.exists(local_path) else fallback_path
 
 def import_tomadores():
-    print(f"Iniciando importacao de: {EXCEL_PATH}")
+    print(f"Buscando arquivo em: {EXCEL_PATH}")
     
     if not os.path.exists(EXCEL_PATH):
-        print(f"Erro: Arquivo nao encontrado em {EXCEL_PATH}")
+        print(f"Erro: Arquivo nao encontrado.")
+        print(f"Dica: Coloque o arquivo '{import_filename}' na raiz do projeto.")
         return
 
     try:
