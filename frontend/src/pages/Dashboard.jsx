@@ -23,6 +23,9 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
   // Edição Direta de Tomador
   const [editingTomador, setEditingTomador] = useState(null);
   const [isSavingTomadorDatabase, setIsSavingTomadorDatabase] = useState(false);
+  
+  // Pilha de Navegação (para saber de onde veio e para onde voltar)
+  const [openedFromWarnings, setOpenedFromWarnings] = useState(false);
 
   // Sincroniza com prop do App.jsx (quando clica no Header)
   useEffect(() => {
@@ -124,6 +127,12 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
   const closeTomadores = () => {
     setShowTomadoresModal(false);
     if (onCloseTomadores) onCloseTomadores();
+    
+    // Se veio de um aviso, retorna para o aviso
+    if (openedFromWarnings) {
+      setShowWarningsModal(true);
+      setOpenedFromWarnings(false); // Limpa para a próxima
+    }
   };
 
   const handleNovoProcessamento = () => {
@@ -135,6 +144,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
 
   const handleOpenCorrection = (w) => {
     setShowWarningsModal(false);
+    setOpenedFromWarnings(true); // Marca que a origem é o aviso
     
     // Injeta o CNPJ na busca para já abrir o modal com o tomador filtrado
     if (w.cnpj && w.cnpj !== 'Vazio' && w.cnpj !== 'Não Informado' && String(w.cnpj).trim() !== '') {
@@ -180,7 +190,8 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rows: resultado.rows,
-          competencia: competencia
+          competencia: competencia,
+          refresh_from_db: true // Garante que pegue os dados mais novos do Supabase
         }),
       });
 
@@ -546,7 +557,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
                     onClick={() => handleOpenCorrection(resultado.warnings[0])}
                     className="flex-1 bg-stone-300 dark:bg-slate-800 hover:bg-stone-400 dark:hover:bg-slate-700 text-stone-800 dark:text-white font-bold py-2 rounded-md transition-colors text-xs"
                   >
-                    EDITAR NO BANCO (MASTER)
+                    EDITAR NO BANCO DE DADOS
                   </button>
                   <button 
                     onClick={() => setShowWarningsModal(false)}

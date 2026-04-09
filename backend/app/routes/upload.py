@@ -91,13 +91,21 @@ async def reprocess_data(
     if not rows:
         raise HTTPException(status_code=400, detail="Dados de 'rows' não fornecidos.")
 
-    # 1. Recalcular impostos caso o usuário tenha mudado valores (segurança)
-    # No momento as edições são focadas em tomadores, mas o calculator garante integridade.
+    # 1. Se solicitado pelo frontend, busca dados frescos do banco de dados (Supabase)
+    if payload.get("refresh_from_db"):
+        from app.services.data_enrichment import EnrichmentService
+        try:
+            # Re-processa e enriquece os dados baseados no estado atual do Supabase
+            rows, stats = await EnrichmentService.enrich_and_verify_tomadores(db, rows)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Erro ao sincronizar com o banco de dados: {str(e)}")
+
+    # 2. Recalcular impostos caso o usuário tenha mudado valores (segurança)
     rows_calculated = []
     for row in rows:
         rows_calculated.append(ValueCalculator.process_taxes(row))
 
-    # 2. Gerar XML LXML
+    # 3. Gerar XML LXML
     try:
         xml_bytes, warnings = XmlGeneratorService.gerar_lote_xml(rows_calculated, data_competencia=competencia)
     except Exception as e:
