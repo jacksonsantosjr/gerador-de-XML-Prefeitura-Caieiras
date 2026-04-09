@@ -30,26 +30,46 @@ class SpreadsheetParser:
             # Identificadores problemáticos que as vezes vem nas planilhas e dão erro de codificação
             colunas_reais = list(df.columns)
             
-            # Buscando de forma flexível as colunas alvo de forma única
+            # Buscando as colunas primeiro por match EXATO (prioridade máxima)
             colunas_mapeadas = {}
             alvos_encontrados = set()
             
+            # 1. Busca Exata (ERP layout mapping)
+            for col in colunas_reais:
+                str_col = str(col).strip().upper()
+                if str_col in ["Nº DO MOVIMENTO", "N DO MOVIMENTO", "NUMERO DO MOVIMENTO"]:
+                    target = "NumRps"
+                elif str_col in ["DATA EMISSÃO", "DATA EMISSAO"]:
+                    target = "DtEmi"
+                elif str_col in ["VALOR DO DOCUMENTO", "VALOR DOCUMENTO"]:
+                    target = "VlNFS"
+                elif str_col in ["CPF/CNPJ", "CPF / CNPJ", "CPF/CNPJ CLI/FOR"]:
+                    target = "CpfCnpTom"
+                elif str_col in ["RAZÃO SOCIAL", "RAZAO SOCIAL", "RAZAO SOCIAL CLI/FOR"]:
+                    target = "RazSocTom"
+                else:
+                    target = None
+                    
+                if target and target not in alvos_encontrados:
+                    colunas_mapeadas[col] = target
+                    alvos_encontrados.add(target)
+            
+            # 2. Busca flexível apenas para os que faltaram (fallback)
             for col in colunas_reais:
                 str_col = str(col).strip().upper()
                 target = None
                 
-                if "N" in str_col and "MOVIMENTO" in str_col:
+                if "NumRps" not in alvos_encontrados and "N" in str_col and "MOVIMENTO" in str_col:
                     target = "NumRps"
-                elif "DATA" in str_col and "EMISS" in str_col:
+                elif "DtEmi" not in alvos_encontrados and "DATA" in str_col and "EMISS" in str_col:
                     target = "DtEmi"
-                elif "VALOR DO DOCUMENTO" in str_col or ("VALOR" in str_col and "DOCUMENTO" in str_col):
+                elif "VlNFS" not in alvos_encontrados and "VALOR" in str_col and "DOCUMENTO" in str_col:
                     target = "VlNFS"
-                elif "CPF" in str_col and "CNPJ" in str_col:
+                elif "CpfCnpTom" not in alvos_encontrados and "CPF" in str_col and "CNPJ" in str_col:
                     target = "CpfCnpTom"
-                elif "RAZ" in str_col and "SOCIAL" in str_col:
+                elif "RazSocTom" not in alvos_encontrados and "RAZ" in str_col and "SOCIAL" in str_col:
                     target = "RazSocTom"
                 
-                # Só mapeia se o alvo ainda não foi preenchido (evita duplicatas que geram DataFrames)
                 if target and target not in alvos_encontrados:
                     colunas_mapeadas[col] = target
                     alvos_encontrados.add(target)
