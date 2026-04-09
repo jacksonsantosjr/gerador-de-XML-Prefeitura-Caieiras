@@ -1,4 +1,4 @@
-name: Sync to Hugging Face Hub # Trigger com novos segredos (Token Write + URL correta)
+name: Sync to Hugging Face Hub # Resilient URL Fix
 on:
   push:
     branches: [main]
@@ -15,4 +15,11 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE_URL: ${{ secrets.HF_SPACE_URL }}
         run: |
-          git push --force https://jacksonsantosjr:$HF_TOKEN@$HF_SPACE_URL main
+          # Limpar a URL caso comece com https:// ou http://
+          HF_CLEAN_URL=$(echo $HF_SPACE_URL | sed 's|^https://||' | sed 's|^http://||')
+          echo "Syncing to $HF_CLEAN_URL"
+          # Adicionar configurações de usuário para o push
+          git config --global user.email "jackson@example.com"
+          git config --global user.name "Jackson Junior"
+          # Push forçado com verbosidade
+          git push --force "https://jacksonsantosjr:$HF_TOKEN@$HF_CLEAN_URL" main
