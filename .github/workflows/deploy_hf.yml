@@ -16,5 +16,5 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE_URL: ${{ secrets.HF_SPACE_URL }}
         run: |
+          git config lfs.allowincompletepush true
           git push --force https://jacksonsantosjr:$HF_TOKEN@$HF_SPACE_URL main
-
