@@ -1,4 +1,4 @@
-name: Sync to Hugging Face Hub # Resilient URL Fix
+name: Sync to Hugging Face Hub # Hardcoded Destination Fix
 on:
   push:
     branches: [main]
@@ -13,13 +13,16 @@ jobs:
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          HF_SPACE_URL: ${{ secrets.HF_SPACE_URL }}
         run: |
-          # Limpar a URL caso comece com https:// ou http://
-          HF_CLEAN_URL=$(echo $HF_SPACE_URL | sed 's|^https://||' | sed 's|^http://||')
-          echo "Syncing to $HF_CLEAN_URL"
-          # Adicionar configurações de usuário para o push
+          # Endereço confirmado via print do usuário
+          HF_REPO="huggingface.co/spaces/jacksonsantosjr/XML-Prefeitura-Caieiras"
+          
+          echo "Iniciando sincronismo para $HF_REPO..."
+          
+          # Configurações globais para evitar bloqueios
           git config --global user.email "jackson@example.com"
           git config --global user.name "Jackson Junior"
-          # Push forçado com verbosidade
-          git push --force "https://jacksonsantosjr:$HF_TOKEN@$HF_CLEAN_URL" main
+          
+          # Push forçado (necessário devido à purga do LFS que mudou o histórico)
+          # Usamos o token diretamente na URL de forma segura (URL-masked nos logs)
+          git push --force "https://jacksonsantosjr:$HF_TOKEN@$HF_REPO" main
