@@ -1,5 +1,2 @@
-*.jpg filter=lfs diff=lfs merge=lfs -text
-*.db filter=lfs diff=lfs merge=lfs -text
-*.xlsm !text !filter !merge !diff
-*.db !text !filter !merge !diff
-*.jpg !text !filter !merge !diff
+# O Git LFS foi removido para evitar problemas de sincronização com objetos binários faltantes.
+# Arquivos de imagem e banco de dados agora são tratados como arquivos Git padrão.
