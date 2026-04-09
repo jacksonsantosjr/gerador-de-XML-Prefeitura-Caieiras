@@ -27,6 +27,9 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
   // Pilha de Navegação (para saber de onde veio e para onde voltar)
   const [openedFromWarnings, setOpenedFromWarnings] = useState(false);
 
+  // Modal de Confirmação de Exclusão
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, cnpj: '', name: '' });
+
   // Sincroniza com prop do App.jsx (quando clica no Header)
   useEffect(() => {
     if (showTomadoresExtra) {
@@ -308,11 +311,14 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
     }
   };
 
-  const handleDeleteTomador = async (cnpj) => {
-    if (!window.confirm("ATENÇÃO: Deseja realmente excluir este tomador permanentemente do seu banco de dados?")) {
-      return;
-    }
+  const handleDeleteTomador = (cnpj, name) => {
+    setDeleteConfirm({ isOpen: true, cnpj, name });
+  };
 
+  const executeDelete = async () => {
+    const { cnpj } = deleteConfirm;
+    setDeleteConfirm({ ...deleteConfirm, isOpen: false });
+    
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
       const response = await fetch(`${apiUrl}/api/tomadores/${cnpj}`, {
@@ -669,7 +675,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
                               <Edit2 className="h-4 w-4" />
                             </button>
                             <button 
-                              onClick={() => handleDeleteTomador(t.cnpj)} 
+                              onClick={() => handleDeleteTomador(t.cnpj, t.razao_social)} 
                               className="p-2 text-stone-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
                               title="Excluir Registro"
                             >
@@ -859,6 +865,56 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
           </div>
         </div>
       )}
+      {/* MODAL: Confirmação de Exclusão Customizada */}
+      {deleteConfirm.isOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-md shadow-2xl border border-stone-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="p-4 border-b border-stone-100 dark:border-slate-800 flex justify-between items-center bg-red-50 dark:bg-red-900/20">
+              <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
+                <AlertTriangle className="h-5 w-5" />
+                <h3 className="font-bold">Confirmar Exclusão</h3>
+              </div>
+              <button 
+                onClick={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
+                className="hover:bg-red-100 dark:hover:bg-red-900/40 p-1 rounded-full transition-colors"
+              >
+                <X className="h-4 w-4 text-red-500" />
+              </button>
+            </div>
+            
+            <div className="p-6 text-center">
+              <p className="text-stone-700 dark:text-slate-300 text-sm mb-4">
+                Você está prestes a excluir permanentemente o tomador:
+              </p>
+              <div className="bg-stone-50 dark:bg-slate-800 p-3 rounded-md mb-6 inline-block w-full">
+                <p className="font-bold text-stone-800 dark:text-white truncate" title={deleteConfirm.name}>
+                  {deleteConfirm.name || "Sem Razão Social"}
+                </p>
+                <p className="text-xs font-mono text-stone-500 mt-1">{deleteConfirm.cnpj}</p>
+              </div>
+              <p className="text-xs text-red-500 font-semibold uppercase tracking-widest">
+                Esta ação não pode ser desfeita.
+              </p>
+            </div>
+
+            <div className="p-4 bg-stone-50 dark:bg-slate-900/50 flex gap-3">
+              <button 
+                onClick={() => setDeleteConfirm({ ...deleteConfirm, isOpen: false })}
+                className="flex-1 px-4 py-2 border border-stone-200 dark:border-slate-800 text-stone-600 dark:text-slate-400 font-bold rounded-md hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors text-xs"
+              >
+                CANCELAR
+              </button>
+              <button 
+                onClick={executeDelete}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-md shadow-md transition-colors text-xs"
+              >
+                CONFIRMAR EXCLUSÃO
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
