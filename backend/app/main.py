@@ -3,6 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routes.upload import router as upload_router
 from app.routes.tomadores import router as tomadores_router
 
+# Inicialização do Banco de Dados (Auto-create tables)
+from app.models.tomador import Base
+from app.core.database import engine
+Base.metadata.create_all(bind=engine)
+
 app = FastAPI(
     title="Gerador XML - Prefeitura de Caieiras",
     description="Motor automático de processamento e faturamento de NFS-e (Caieiras)",
