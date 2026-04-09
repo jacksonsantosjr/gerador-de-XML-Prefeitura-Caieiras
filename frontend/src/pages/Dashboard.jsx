@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { UploadCloud, FileType, CheckCircle, AlertCircle, Loader2, Download, ExternalLink, Search, X, AlertTriangle, Database, Info, Edit2 } from 'lucide-react';
+import { UploadCloud, FileType, CheckCircle, AlertCircle, Loader2, Download, ExternalLink, Search, X, AlertTriangle, Database, Info, Edit2, Trash2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
 export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
@@ -305,6 +305,29 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
       setGenericModalMsg("Erro de conexão ao salvar tomador.");
     } finally {
       setIsSavingTomadorDatabase(false);
+    }
+  };
+
+  const handleDeleteTomador = async (cnpj) => {
+    if (!window.confirm("ATENÇÃO: Deseja realmente excluir este tomador permanentemente do seu banco de dados?")) {
+      return;
+    }
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiUrl}/api/tomadores/${cnpj}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Recarrega a tabela para mostrar que sumiu
+        handleOpenTomadores();
+      } else {
+        const errData = await response.json().catch(() => null);
+        setGenericModalMsg(errData?.detail || "Erro ao excluir tomador.");
+      }
+    } catch (err) {
+      setGenericModalMsg("Erro de conexão ao excluir tomador.");
     }
   };
 
@@ -637,13 +660,22 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
                         <td className="px-3 py-3 text-xs text-stone-600 dark:text-stone-400 truncate max-w-[100px]">{t.municipio || <span className="text-red-500 font-bold">Vazio</span>} - {t.uf}</td>
                         <td className="px-3 py-3 text-xs text-stone-600 dark:text-stone-400">{t.cep || <span className="text-red-500 font-bold">Vazio</span>}</td>
                         <td className="px-3 py-3 text-right">
-                          <button 
-                            onClick={() => setEditingTomador({...t})} 
-                            className="p-2 text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-full transition-colors"
-                            title="Editar Registro"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </button>
+                          <div className="flex justify-end items-center space-x-1">
+                            <button 
+                              onClick={() => setEditingTomador({...t})} 
+                              className="p-2 text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-full transition-colors"
+                              title="Editar Registro"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteTomador(t.cnpj)} 
+                              className="p-2 text-stone-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                              title="Excluir Registro"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

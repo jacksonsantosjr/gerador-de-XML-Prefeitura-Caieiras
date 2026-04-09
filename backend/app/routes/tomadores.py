@@ -33,3 +33,14 @@ def update_tomador(cnpj: str, obj_in: TomadorUpdate, db: Session = Depends(get_d
     db.commit()
     db.refresh(tomador)
     return tomador
+
+@router.delete("/tomadores/{cnpj:path}")
+def delete_tomador(cnpj: str, db: Session = Depends(get_db)):
+    """Remove um tomador permanentemente do banco de dados pelo CNPJ."""
+    tomador = db.query(Tomador).filter(Tomador.cnpj == cnpj).first()
+    if not tomador:
+        raise HTTPException(status_code=404, detail="Tomador não encontrado")
+    
+    db.delete(tomador)
+    db.commit()
+    return {"message": "Tomador removido com sucesso"}
