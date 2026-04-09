@@ -4,3 +4,7 @@ __pycache__/
 backend/.env 
 *.xlsm  
 *.xlsx 
+*.jpg
+*.png
+*.db
+*.sqlite
