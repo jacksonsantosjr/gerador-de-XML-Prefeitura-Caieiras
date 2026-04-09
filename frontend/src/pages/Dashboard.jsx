@@ -21,6 +21,7 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
   const [currentWarning, setCurrentWarning] = useState(null);
   const [correctionValue, setCorrectionValue] = useState('');
   const [isSavingCorrection, setIsSavingCorrection] = useState(false);
+  const [genericModalMsg, setGenericModalMsg] = useState(null);
 
   // Sincroniza com prop do App.jsx (quando clica no Header)
   useEffect(() => {
@@ -166,10 +167,12 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
         // Reprocessa imediatamente
         handleProcessar();
       } else {
-        alert("Erro ao salvar correção.");
+        const errData = await response.json().catch(() => null);
+        setGenericModalMsg(errData?.detail || errData?.error || "Erro ao salvar correção. O servidor retornou uma falha ou o Tomador não possui CNPJ válido.");
       }
     } catch (err) {
       console.error("Erro na correção:", err);
+      setGenericModalMsg("Erro de conexão ao tentar salvar a correção.");
     } finally {
       setIsSavingCorrection(false);
     }
@@ -354,13 +357,13 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
       {showWarningsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-md shadow-2xl border border-stone-200 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-6 border-b border-stone-100 dark:border-slate-800 flex justify-between items-center bg-amber-500/5">
+            <div className="p-6 border-b border-stone-100 dark:border-slate-800 flex justify-between items-center bg-amber-100 dark:bg-amber-900/40">
               <div className="flex items-center space-x-3">
-                <AlertTriangle className="h-6 w-6 text-amber-500" />
-                <h3 className="text-xl font-bold dark:text-white">Relatório de Campos em Branco</h3>
+                <AlertTriangle className="h-6 w-6 text-amber-600 dark:text-amber-500" />
+                <h3 className="text-xl font-bold text-amber-900 dark:text-amber-100">Relatório de Campos em Branco</h3>
               </div>
-              <button onClick={() => setShowWarningsModal(false)} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-full transition-colors">
-                <X className="h-5 w-5 dark:text-stone-400" />
+              <button onClick={() => setShowWarningsModal(false)} className="p-2 hover:bg-amber-200/50 dark:hover:bg-amber-800/50 rounded-full transition-colors">
+                <X className="h-5 w-5 text-amber-700 dark:text-amber-400" />
               </button>
             </div>
             
@@ -512,6 +515,29 @@ export default function Dashboard({ showTomadoresExtra, onCloseTomadores }) {
               >
                 {isSavingCorrection ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
                 SALVAR E REPROCESSAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL: Mensagem Genérica de Erro */}
+      {genericModalMsg && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-stone-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-md shadow-2xl border border-red-200 dark:border-red-900/30 overflow-hidden">
+            <div className="p-5 border-b border-stone-100 dark:border-slate-800 flex items-center space-x-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
+              <AlertCircle className="h-6 w-6" />
+              <h3 className="font-bold">Aviso do Sistema</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-stone-700 dark:text-stone-300 text-sm leading-relaxed">{genericModalMsg}</p>
+            </div>
+            <div className="p-4 bg-stone-50 dark:bg-slate-900/50 border-t border-stone-100 dark:border-slate-800 flex justify-end">
+              <button 
+                onClick={() => setGenericModalMsg(null)}
+                className="bg-red-600 hover:bg-red-500 text-white font-bold px-6 py-2 rounded-md transition-colors"
+                autoFocus
+              >
+                ENTENDIDO
               </button>
             </div>
           </div>
